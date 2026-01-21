@@ -1,147 +1,170 @@
 import streamlit as st
 from groq import Groq
 import base64
-from PIL import Image
-import io
 
-# --- 1. ARCHITECTURAL CONFIGURATION ---
+# --- 1. SETTING PAGE: WISPR STYLE ---
 st.set_page_config(
-    page_title="FLOW | Strategic Intelligence",
-    page_icon="⚪",
+    page_title="Flow",
+    page_icon="◦",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. WISPR FLOW AESTHETIC (CSS) ---
+# --- 2. THE WISPR FLOW "VIBE" CSS ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@200;300;400;500&display=swap');
+    /* Menggunakan font premium: Playfair Display untuk Serif, Inter untuk Sans */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&family=Playfair+Display:ital,wght@0,400;1,400&display=swap');
     
-    /* Wispr Flow Foundation */
     .stApp {
-        background-color: #000000; /* Atau #FFFFFF jika ingin versi terang */
-        color: #FFFFFF;
+        background-color: #000000;
+        color: #ffffff;
         font-family: 'Inter', sans-serif;
     }
 
-    /* Minimalist Header */
-    .nav-bar {
-        display: flex;
-        justify-content: center;
-        padding: 40px 0;
-        letter-spacing: 8px;
-        font-size: 14px;
-        font-weight: 200;
-        text-transform: uppercase;
-        opacity: 0.6;
+    /* Logo & Nav di tengah seperti Wispr */
+    .nav-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 30px;
+        text-align: center;
+        z-index: 1000;
+        background: rgba(0,0,0,0.8);
+        backdrop-filter: blur(10px);
     }
 
-    /* Wisdom Typography (The Wispr Style) */
-    .hero-text {
-        font-family: 'Instrument Serif', serif;
-        font-size: 64px;
+    .nav-logo {
+        letter-spacing: 0.5em;
+        font-size: 12px;
+        font-weight: 300;
+        color: rgba(255,255,255,0.5);
+        text-transform: uppercase;
+    }
+
+    /* Hero Text: Kunci Mewah WisprFlow */
+    .hero-section {
+        margin-top: 15vh;
+        margin-bottom: 5vh;
         text-align: center;
-        margin: 40px 0;
-        background: linear-gradient(180deg, #FFFFFF 0%, #888888 100%);
+    }
+
+    .hero-title {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(40px, 8vw, 80px);
+        font-style: italic;
+        font-weight: 400;
+        line-height: 1.1;
+        background: linear-gradient(180deg, #FFFFFF 0%, rgba(255,255,255,0.4) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        line-height: 1.1;
     }
 
-    /* Clean Chat Container */
+    /* Chat Area: Sangat Lapang */
+    .chat-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding-bottom: 150px;
+    }
+
     .stChatMessage {
-        background: transparent !important;
+        background-color: transparent !important;
         border: none !important;
-        padding: 1rem 15% !important;
+        margin-bottom: 2rem !important;
     }
 
+    /* Teks AI & User */
     .stChatMessage [data-testid="stMarkdownContainer"] p {
-        font-size: 18px;
-        font-weight: 300;
-        line-height: 1.6;
-        color: #D1D1D1;
+        font-size: 1.2rem !important;
+        font-weight: 300 !important;
+        line-height: 1.7 !important;
+        color: rgba(255,255,255,0.9);
     }
 
-    /* User Message Styling (Right Aligned like Wispr) */
-    [data-testid="stChatMessage"]:nth-child(even) {
-        text-align: right;
-        color: #FFFFFF;
-    }
-
-    /* Minimalist Input Bar */
+    /* Input Bar yang 'Melayang' dan Bersih */
     .stChatInputContainer {
-        padding: 40px 20% !important;
-        background: transparent !important;
+        padding: 40px 10% !important;
+        background: linear-gradient(to top, #000 60%, transparent) !important;
         border: none !important;
     }
 
     div[data-testid="stChatInput"] {
-        background: rgba(255, 255, 255, 0.03) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 40px !important; /* Pill shape */
-        padding: 10px 20px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        background: rgba(255,255,255,0.05) !important;
+        border-radius: 100px !important; /* Pill style */
+        padding: 10px 25px !important;
     }
 
-    /* Buttons & Utilities */
-    .stButton>button {
-        background: transparent;
-        border: none;
-        color: #666;
-        font-size: 12px;
-        transition: 0.3s;
+    /* Sembunyikan Elemen Streamlit yang merusak estetika */
+    [data-testid="stSidebar"], header, footer { display: none; }
+    
+    /* Tombol */
+    button {
+        background: transparent !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        color: white !important;
+        border-radius: 50px !important;
     }
-    .stButton>button:hover { color: #FFF; }
-
-    /* Hide redundant elements */
-    header, footer { visibility: hidden; }
-    [data-testid="stSidebar"] { display: none; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- 3. CORE LOGIC ---
-api_key = st.secrets.get("GROQ_API_KEY", "YOUR_API_KEY")
-client = Groq(api_key=api_key)
+client = Groq(api_key=st.secrets.get("GROQ_API_KEY", "ISI_API_KEY_DISINI"))
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- 4. MAIN UI ---
-st.markdown('<div class="nav-bar">FLOW INTELLIGENCE</div>', unsafe_allow_html=True)
+# --- 4. VIEW ---
+st.markdown('<div class="nav-header"><div class="nav-logo">Flow Intelligence</div></div>', unsafe_allow_html=True)
 
-# Tampilan Selamat Datang (Hanya jika chat kosong)
 if not st.session_state.messages:
-    st.markdown('<div class="hero-text">Think in flow.<br>Speak in wisdom.</div>', unsafe_allow_html=True)
+    st.markdown("""
+        <div class="hero-section">
+            <h1 class="hero-title">Experience the<br>poetry of thought.</h1>
+            <p style="color:rgba(255,255,255,0.4); letter-spacing:2px; font-size:12px; margin-top:20px;">AI FOR THE STRATEGIC MIND</p>
+        </div>
+    """, unsafe_allow_html=True)
 
-# Chat History
+# Container Chat
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+        st.write(msg["content"])
+st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 5. INTERACTION ---
-if prompt := st.chat_input("What is on your mind?"):
+if prompt := st.chat_input("Write your flow..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.write(prompt)
 
     with st.chat_message("assistant"):
         placeholder = st.empty()
-        full_res = ""
+        full_response = ""
         
         try:
+            # Menggunakan Model Terkuat (Llama 3.3 70B)
             stream = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
-                    {"role": "system", "content": "You are Flow, a minimalist and highly intelligent AI. Your answers are deep, poetic yet practical, and very clean."},
+                    {"role": "system", "content": "You are Flow. Your response is direct, elegant, and highly professional. Use sophisticated vocabulary but keep it concise."},
                     *[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
                 ],
                 stream=True
             )
             for chunk in stream:
                 content = chunk.choices[0].delta.content or ""
-                full_res += content
-                placeholder.markdown(full_res + " ")
+                full_response += content
+                placeholder.markdown(full_response + "◦")
             
-            st.session_state.messages.append({"role": "assistant", "content": full_res})
+            placeholder.markdown(full_response)
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Operational Error: {e}")
+
+# Tombol Reset Mewah di pojok bawah
+if st.session_state.messages:
+    if st.button("CLEAR FLOW"):
+        st.session_state.messages = []
+        st.rerun()
