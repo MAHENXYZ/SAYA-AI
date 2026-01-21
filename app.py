@@ -1,151 +1,94 @@
 import streamlit as st
 from groq import Groq
-import base64
-import time
 import json
 import os
+import time
 import hashlib
-import pandas as pd
-from datetime import datetime
-from PIL import Image
-import io
 from pypdf import PdfReader
+import pandas as pd
 
-# =============================================================================
-# [CORE-01] INITIAL CONFIGURATION
-# =============================================================================
-st.set_page_config(
-    page_title="Flow Intelligence | Elite AI",
-    page_icon="✨",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# [CONFIG] Konfigurasi Dasar
+st.set_page_config(page_title="Flow Intelligence", page_icon="✨", layout="wide")
 
-# =============================================================================
-# [CORE-02] LUXURY DESIGN SYSTEM
-# =============================================================================
-def apply_global_design_system():
+# [STYLING] Sistem Desain Obsidian Gold
+def apply_styles():
     st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;600&display=swap');
-    :root {
-        --accent-gold: #C5A059;
-        --dark-obsidian: #0A0A0A;
-        --soft-white: #F5F5F7;
-        --glass-bg: rgba(255, 255, 255, 0.03);
-    }
-    .stApp { background-color: var(--dark-obsidian); color: var(--soft-white); font-family: 'Inter', sans-serif; }
-    [data-testid="stSidebar"] { background-color: #050505 !important; border-right: 1px solid rgba(197, 160, 89, 0.1); }
-    .nav-brand { font-family: 'Instrument Serif', serif; font-size: 32px; color: var(--accent-gold); letter-spacing: -0.5px; }
-    .assistant-header { font-family: 'Instrument Serif', serif; font-size: 1.5rem; color: var(--accent-gold); font-style: italic; }
-    .content-body { font-size: 1.1rem; line-height: 1.7; color: rgba(255, 255, 255, 0.85); }
+    :root { --accent-gold: #C5A059; --dark-obsidian: #0A0A0A; }
+    .stApp { background-color: var(--dark-obsidian); color: #F5F5F7; font-family: 'Inter', sans-serif; }
+    .nav-brand { font-family: 'Instrument Serif', serif; font-size: 32px; color: var(--accent-gold); }
+    div.stButton > button { background: transparent; color: var(--accent-gold); border: 1px solid var(--accent-gold); }
+    div.stButton > button:hover { background: var(--accent-gold); color: black; }
     </style>
-    <script>
-    const synth = window.speechSynthesis;
-    window.speak = (text) => {
-        if (synth.speaking) synth.cancel();
-        const uttr = new SpeechSynthesisUtterance(text);
-        uttr.rate = 1.05;
-        synth.speak(uttr);
-    };
-    window.stopSpeaking = () => synth.cancel();
-    </script>
     """, unsafe_allow_html=True)
 
-# =============================================================================
-# [CORE-03] SESSION & DATABASE MANAGEMENT
-# =============================================================================
+# [SESSION] Inisialisasi Memori
 if "init" not in st.session_state:
     st.session_state.update({
-        "init": True, "memory": [], "authenticated": False, "start_time": time.time(),
+        "init": True, "memory": [], "authenticated": False, 
         "user_prefs": {"bio": "", "verbosity": "Balanced"}, "doc_context": ""
     })
 
-def save_to_local_db():
-    data = {"memory": st.session_state.memory, "user_prefs": st.session_state.user_prefs}
-    with open("neural_storage.json", "w") as f:
-        json.dump(data, f)
-
-# =============================================================================
-# [CORE-04] SECURITY VAULT
-# =============================================================================
-def check_neural_vault():
+# [AUTH] Gerbang Keamanan
+def check_auth():
     if not st.session_state.authenticated:
-        st.markdown("<br><br><div style='text-align:center'><div class='nav-brand'>NEURAL VAULT</div></div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center'><h1 class='nav-brand'>NEURAL VAULT</h1></div>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             key = st.text_input("ACCESS KEY", type="password")
             if st.button("INITIALIZE SCAN", use_container_width=True):
-                if key == "ADMIN": # Password Default
+                if key == "ADMIN": # Ganti password di sini
                     st.session_state.authenticated = True
                     st.rerun()
-                else: st.error("Invalid Signature")
+                else: st.error("Access Denied")
         return False
     return True
 
-# =============================================================================
-# [CORE-05] MAIN PRODUCTION ENTRY
-# =============================================================================
+# [MAIN] Eksekusi Aplikasi
 def main():
-    apply_global_design_system()
-    
-    if check_neural_vault():
-        # Sidebar Elements
-        with st.sidebar:
-            st.markdown('<div class="nav-brand">FLOW.AI</div>', unsafe_allow_html=True)
-            model_option = st.selectbox("Cognitive Engine", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
+    apply_styles()
+    if not check_auth(): return
+
+    # Sidebar
+    with st.sidebar:
+        st.markdown('<div class="nav-brand">FLOW.AI</div>', unsafe_allow_html=True)
+        model = st.selectbox("Intelligence", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
+        
+        with st.expander("👤 PROFILE"):
+            bio = st.text_area("User Bio", st.session_state.user_prefs["bio"])
+            if st.button("Save"): st.session_state.user_prefs["bio"] = bio
             
-            with st.expander("👤 NEURAL PROFILE"):
-                bio = st.text_area("User Bio", value=st.session_state.user_prefs["bio"])
-                if st.button("Update Profile"):
-                    st.session_state.user_prefs["bio"] = bio
-                    save_to_local_db()
+        pdf = st.file_uploader("Knowledge (PDF)", type="pdf")
+        if pdf:
+            reader = PdfReader(pdf)
+            st.session_state.doc_context = "\n".join([p.extract_text() for p in reader.pages])
+            st.success("Synced")
+
+    # Chat UI
+    for msg in st.session_state.memory:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    if prompt := st.chat_input("Command the Intelligence..."):
+        st.session_state.memory.append({"role": "user", "content": prompt})
+        with st.chat_message("user"): st.markdown(prompt)
+
+        try:
+            # Menggunakan API Key dari Streamlit Secrets
+            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+            full_prompt = f"Context: {st.session_state.doc_context[:1000]}\nUser Bio: {st.session_state.user_prefs['bio']}\n\nQuestion: {prompt}"
             
-            pdf_file = st.file_uploader("Upload Knowledge (PDF)", type="pdf")
-            if pdf_file:
-                reader = PdfReader(pdf_file)
-                st.session_state.doc_context = "\n".join([p.extract_text() for p in reader.pages])
-                st.sidebar.success("PDF Context Injected")
-
-            if st.button("Purge Memory", use_container_width=True):
-                st.session_state.memory = []
-                save_to_local_db()
-                st.rerun()
-
-        # Chat Interface
-        for i, msg in enumerate(st.session_state.memory):
-            if msg["role"] == "user":
-                st.markdown(f'<div style="text-align:right; margin-bottom:20px;">{msg["content"]}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div class="assistant-header">Intelligence Response</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="content-body">{msg["content"]}</div>', unsafe_allow_html=True)
-                # Voice Button
-                if st.button("🔊", key=f"v_{i}"):
-                    st.components.v1.html(f"<script>window.parent.speak(`{msg['content'][:500]}`)</script>")
-
-        # Input Logic
-        if prompt := st.chat_input("Command the Intelligence..."):
-            st.session_state.memory.append({"role": "user", "content": prompt})
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": full_prompt}]
+            ).choices[0].message.content
             
-            # API Call
-            try:
-                client = Groq(api_key=st.secrets.get("GROQ_API_KEY", "YOUR_KEY_HERE"))
-                context = f"User context: {st.session_state.user_prefs['bio']}. Doc Context: {st.session_state.doc_context[:1000]}"
-                
-                response = client.chat.completions.create(
-                    model=model_option,
-                    messages=[{"role": "system", "content": context}, {"role": "user", "content": prompt}]
-                ).choices[0].message.content
-                
-                # Image Detection (Simulation)
-                if "gambar" in prompt.lower():
-                    st.image(f"https://image.pollinations.ai/prompt/{prompt}?nologo=true")
-
-                st.session_state.memory.append({"role": "assistant", "content": response})
-                save_to_local_db()
-                st.rerun()
-            except Exception as e:
-                st.error(f"Neural Engine Error: {str(e)}")
+            with st.chat_message("assistant"):
+                st.markdown(response)
+            st.session_state.memory.append({"role": "assistant", "content": response})
+        except Exception as e:
+            st.error(f"Error: {e}. Pastikan 'GROQ_API_KEY' sudah diatur di Secrets Streamlit.")
 
 if __name__ == "__main__":
     main()
