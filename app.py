@@ -1,97 +1,141 @@
 import streamlit as st
 from groq import Groq
-from pypdf import PdfReader
 import time
+import io
+import zipfile
+import re
 
-# [CONFIG]
-st.set_page_config(page_title="NEURAL FLOW PRO", layout="wide")
+# [1] CONFIGURATION
+st.set_page_config(
+    page_title="NEURAL FLOW | MULTI-FILE ARCHITECT",
+    page_icon="⚡",
+    layout="wide"
+)
 
-# [STYLING] Gemini-Inspired Dark Theme
-st.markdown("""
-<style>
-    .stApp { background-color: #050505; color: #e0e0e0; }
+# [2] LUXE STYLING
+def apply_style():
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700&display=swap');
+    .stApp { background-color: #0A0A0A; color: #E0E0E0; font-family: 'Inter', sans-serif; }
+    .stCodeBlock { border: 1px solid #30363D !important; border-radius: 10px !important; }
     .gemini-gradient {
         background: linear-gradient(90deg, #4285F4, #9B72CB, #D4AF37);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-size: 32px; font-weight: bold;
+        font-weight: 800; font-size: 2.5rem;
     }
-    .status-tag { color: #D4AF37; font-size: 12px; letter-spacing: 2px; }
-</style>
-""", unsafe_allow_html=True)
+    .download-card {
+        background: #161B22; border: 1px solid #30363D;
+        padding: 20px; border-radius: 15px; margin-top: 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-if "memory" not in st.session_state: st.session_state.memory = []
+# [3] LOGIC: EXTRACT FILES FROM CODE
+def create_zip_from_code(full_text):
+    """Mencari blok kode dan menyimpannya sebagai file terpisah dalam ZIP"""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "x", zipfile.ZIP_DEFLATED) as vk:
+        # Mencari pola: // filename: namafile.ext atau # filename: namafile.ext
+        file_blocks = re.findall(r"(?://|#)\s*filename:\s*([\w\.]+)\n```(?:\w+)?\n(.*?)\n```", full_text, re.DOTALL)
+        
+        if file_blocks:
+            for name, content in file_blocks:
+                vk.writestr(name, content.strip())
+        else:
+            # Jika tidak ada format khusus, simpan semua sebagai main_code.py
+            vk.writestr("main_project_code.py", full_text)
+    return buf.getvalue()
 
-# --- CORE ENGINE: UNLIMITED CODE GENERATION ---
-def generate_unlimited_response(prompt, model_choice):
+# [4] CORE ENGINE: RECURSIVE GENERATION
+def generate_unlimited_pro(prompt, model):
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-    
-    full_response = ""
+    full_res = ""
     placeholder = st.empty()
     
-    # System Instruction khusus untuk Coding tanpa batas
     messages = [
-        {"role": "system", "content": "You are a Senior Full-Stack Architect. Provide complete, production-ready code. If the code is extremely long, do not truncate it. Finish the current thought and I will ask you to continue."},
+        {"role": "system", "content": "You are an Elite Developer. If creating a project, start each file with '# filename: name.ext' followed by the code block. Generate thousands of lines if needed. I will ask you to continue until finished."},
         {"role": "user", "content": prompt}
     ]
     
-    continue_generating = True
     iteration = 0
-
-    while continue_generating and iteration < 10: # Limit 10x loop untuk keamanan
-        with st.spinner("Neural engine processing..."):
-            completion = client.chat.completions.create(
-                model=model_choice,
-                messages=messages,
-                stream=True,
-                max_tokens=4096 # Maksimal token per hit
+    while iteration < 20: # Kapasitas sangat besar
+        try:
+            if iteration > 0: time.sleep(4) # Rate limit protection
+            
+            stream = client.chat.completions.create(
+                model=model, messages=messages, stream=True, max_tokens=3500
             )
             
-            partial_text = ""
-            for chunk in completion:
+            current_chunk = ""
+            for chunk in stream:
                 content = chunk.choices[0].delta.content
                 if content:
-                    partial_text += content
-                    full_response += content
-                    placeholder.markdown(full_response + " █")
+                    current_chunk += content
+                    full_res += content
+                    placeholder.markdown(full_res + " █")
             
-            # LOGIKA DETEKSI TERPOTONG:
-            # Jika output tidak diakhiri dengan penutup markdown kode (```) 
-            # atau terlihat seperti kalimat menggantung.
-            if "```" in partial_text[-5:] or iteration > 5:
-                continue_generating = False
-            else:
-                # Otomatis minta sambungan (Recursive call)
-                messages.append({"role": "assistant", "content": partial_text})
-                messages.append({"role": "user", "content": "The code was truncated. Continue exactly where you left off. Do not repeat the beginning, just continue the code."})
-                iteration += 1
-                time.sleep(1) # Bypass rate limit
+            # Cek jika blok kode sudah tertutup sempurna
+            if full_res.strip().endswith("```") and full_res.count("```") % 2 == 0:
+                break
                 
-    placeholder.markdown(full_response)
-    return full_response
+            messages.append({"role": "assistant", "content": current_chunk})
+            messages.append({"role": "user", "content": "CONTINUE. No intro, just the rest of the code."})
+            iteration += 1
+        except Exception as e:
+            st.error(f"Limit Reached: {e}")
+            break
+            
+    return full_res
 
+# [5] UI MAIN
 def main():
-    st.markdown("<p class='status-tag'>SYSTEM ONLINE | UNLIMITED CODE MODE</p>", unsafe_allow_html=True)
-    st.markdown("<h1 class='gemini-gradient'>Neural Flow Architect</h1>", unsafe_allow_html=True)
-
+    apply_style()
+    st.markdown("<h1 class='gemini-gradient'>Neural Architect Pro</h1>", unsafe_allow_html=True)
+    
     with st.sidebar:
-        st.header("Settings")
-        model = st.selectbox("Intelligence Level", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
-        st.info("Mode 'Unlimited Code' aktif secara otomatis. AI akan terus menulis sampai blok kode ditutup (```).")
-        if st.button("Clear Memory"):
-            st.session_state.memory = []
+        st.image("https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d473530393318e3d91f45.svg", width=40)
+        st.header("Intelligence Control")
+        model = st.selectbox("Core", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
+        st.markdown("---")
+        st.write("📂 **Features Active:**\n- Recursive Logic\n- Auto-Zip Packaging\n- Rate-Limit Shield")
+        if st.button("Reset Session"):
+            st.session_state.clear()
             st.rerun()
 
-    # Chat UI
-    for msg in st.session_state.memory:
-        with st.chat_message(msg["role"]): st.markdown(msg["content"])
+    if "history" not in st.session_state: st.session_state.history = []
 
-    if prompt := st.chat_input("Tulis tugas coding yang sangat panjang di sini..."):
-        st.session_state.memory.append({"role": "user", "content": prompt})
-        with st.chat_message("user"): st.markdown(prompt)
+    for m in st.session_state.history:
+        with st.chat_message(m["role"]): st.markdown(m["content"])
+
+    if p := st.chat_input("Apa project raksasa yang ingin Anda buat?"):
+        st.session_state.history.append({"role": "user", "content": p})
+        with st.chat_message("user"): st.markdown(p)
 
         with st.chat_message("assistant"):
-            final_res = generate_unlimited_response(prompt, model)
-            st.session_state.memory.append({"role": "assistant", "content": final_res})
+            final_output = generate_unlimited_pro(p, model)
+            st.session_state.history.append({"role": "assistant", "content": final_output})
+            
+            # ZIP & Download Logic
+            st.markdown("---")
+            col1, col2 = st.columns(2)
+            with col1:
+                zip_data = create_zip_from_code(final_output)
+                st.download_button(
+                    label="🎁 Download Project (.ZIP)",
+                    data=zip_data,
+                    file_name="neural_project.zip",
+                    mime="application/zip",
+                    use_container_width=True
+                )
+            with col2:
+                st.download_button(
+                    label="📄 Download Raw Text (.txt)",
+                    data=final_output,
+                    file_name="raw_code.txt",
+                    mime="text/plain",
+                    use_container_width=True
+                )
 
 if __name__ == "__main__":
     main()
