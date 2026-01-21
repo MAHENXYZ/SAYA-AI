@@ -5,7 +5,7 @@ import io
 import zipfile
 import re
 
-# [1] ADVANCED CONFIGURATION
+# [1] ADVANCED PAGE CONFIGURATION
 st.set_page_config(
     page_title="NEURAL FLOW | UNLIMITED ARCHITECT",
     page_icon="⚡",
@@ -23,58 +23,53 @@ def apply_style():
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         font-weight: 800; font-size: 2.8rem;
     }
-    /* Tombol Download Mewah */
     .stDownloadButton button {
         background: linear-gradient(45deg, #1A73E8, #9B72CB) !important;
         color: white !important; border-radius: 12px !important;
         border: none !important; font-weight: bold !important;
         transition: 0.3s; width: 100%;
     }
-    .stDownloadButton button:hover { transform: scale(1.02); opacity: 0.9; }
     </style>
     """, unsafe_allow_html=True)
 
-# [3] MULTI-FILE ZIP ENGINE
+# [3] MULTI-FILE ZIP GENERATOR
 def create_zip_from_code(full_text):
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "x", zipfile.ZIP_DEFLATED) as vk:
-        # Mencari pola # filename: namafile.py
+        # Mencari pola penamaan file otomatis: # filename: example.py
         file_blocks = re.findall(r"(?://|#)\s*filename:\s*([\w\.]+)\n```(?:\w+)?\n(.*?)\n```", full_text, re.DOTALL)
         if file_blocks:
             for name, content in file_blocks:
                 vk.writestr(name, content.strip())
         else:
-            vk.writestr("generated_code.py", full_text)
+            vk.writestr("full_project_code.txt", full_text)
     return buf.getvalue()
 
-# [4] NO-LIMIT RECURSIVE ENGINE
-def generate_no_limit_code(prompt, model):
+# [4] TRUE NO-LIMIT ENGINE (RECURSIVE & PROTECTED)
+def generate_unlimited_code(prompt, model):
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
     full_response = ""
     placeholder = st.empty()
     
-    # System Prompt untuk memastikan AI tidak berhenti di tengah jalan
+    # Instruksi sistem yang sangat ketat untuk menghindari looping sampah
     messages = [
-        {"role": "system", "content": "You are an Elite Developer. Provide full, extremely detailed code. Use '# filename: name.ext' for each file. If the code is long, do not summarize. I will ask you to continue until 100% finished."},
+        {"role": "system", "content": "You are an Elite Developer. Provide full, production-ready code. Use '# filename: name.ext' before code blocks. If the code is long, DO NOT say 'To be continued' or 'Dan seterusnya'. Just stop, so I can ask you to continue. Be 100% efficient."},
         {"role": "user", "content": prompt}
     ]
     
     iteration = 0
-    max_iteration = 25 # Kapasitas hingga ~80.000 token
-
-    while iteration < max_iteration:
+    # Mendukung hingga 20 iterasi (~60.000+ token)
+    while iteration < 20:
         try:
-            # Jeda adaptif untuk menghindari groq.RateLimitError
-            wait_time = 5 if iteration < 5 else 10
+            # Jeda adaptif untuk mendinginkan API Groq
             if iteration > 0:
-                with st.spinner(f"Menyambung kode (Bagian {iteration+1})..."):
-                    time.sleep(wait_time)
+                time.sleep(6) # Cooldown wajib
             
             stream = client.chat.completions.create(
                 model=model,
                 messages=messages,
                 stream=True,
-                max_tokens=3500 # Ukuran aman per hit
+                max_tokens=3000 # Ukuran optimal untuk menghindari limit mendadak
             )
             
             chunk_text = ""
@@ -85,29 +80,28 @@ def generate_no_limit_code(prompt, model):
                     full_response += content
                     placeholder.markdown(full_response + " █")
             
-            # Cek apakah blok kode terakhir sudah ditutup (```)
-            # Jika sudah ditutup dan tidak ada blok baru yang dibuka, berarti selesai
+            # Deteksi apakah semua blok kode sudah ditutup
             if full_response.strip().endswith("```") and full_response.count("```") % 2 == 0:
                 break
             
-            # Update memori untuk request "Continue"
+            # Menambahkan konteks untuk kelanjutan
             messages.append({"role": "assistant", "content": chunk_text})
-            messages.append({"role": "user", "content": "CONTINUE. Don't repeat, just continue the code exactly from where it cut off."})
+            messages.append({"role": "user", "content": "The code is cut off. CONTINUE immediately from the very last character. No introduction, just the remaining code."})
             iteration += 1
             
         except Exception as e:
             if "rate_limit" in str(e).lower():
-                st.warning("Rate limit terdeteksi. Sistem beristirahat 20 detik...")
-                time.sleep(20)
+                st.warning("⚠️ Memasuki fase pendinginan API (25 detik)...")
+                time.sleep(25)
                 continue
             else:
-                st.error(f"Error: {e}")
+                st.error(f"Sistem Error: {e}")
                 break
                 
     placeholder.markdown(full_response)
     return full_response
 
-# [5] MAIN INTERFACE
+# [5] MAIN UI LOGIC
 def main():
     apply_style()
     st.markdown("<h1 class='gemini-gradient'>Neural Architect Unlimited</h1>", unsafe_allow_html=True)
@@ -116,37 +110,38 @@ def main():
         st.session_state.history = []
 
     with st.sidebar:
-        st.header("⚙️ Core Settings")
-        model = st.selectbox("Model", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
-        st.markdown("---")
-        st.write("🚀 **Mode No-Limit Aktif**")
-        st.caption("AI akan otomatis melakukan iterasi hingga kode selesai 100%.")
-        if st.button("Reset Session"):
+        st.header("⚙️ Intelligent Controls")
+        model = st.selectbox("Model Core", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
+        st.divider()
+        st.write("🚀 **No-Limit Mode: Active**")
+        st.caption("AI akan menulis beribu baris dan menyambung otomatis sampai selesai.")
+        if st.button("Reset Memory"):
             st.session_state.history = []
             st.rerun()
 
-    # Chat Display
+    # Render Chat History
     for msg in st.session_state.history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
     # Chat Input
-    if p := st.chat_input("Deskripsikan sistem/aplikasi besar yang ingin Anda bangun..."):
+    if p := st.chat_input("Deskripsikan tugas coding raksasa Anda..."):
         st.session_state.history.append({"role": "user", "content": p})
         with st.chat_message("user"):
             st.markdown(p)
 
         with st.chat_message("assistant"):
-            final_code = generate_no_limit_code(p, model)
-            st.session_state.history.append({"role": "assistant", "content": final_code})
+            # Memanggil fungsi No-Limit
+            final_res = generate_unlimited_code(p, model)
+            st.session_state.history.append({"role": "assistant", "content": final_res})
             
-            # Export Section
+            # Export Buttons
             st.markdown("---")
-            zip_file = create_zip_from_code(final_code)
+            zip_file = create_zip_from_code(final_res)
             st.download_button(
                 label="📦 DOWNLOAD FULL PROJECT (.ZIP)",
                 data=zip_file,
-                file_name="architect_project.zip",
+                file_name="architect_project_files.zip",
                 mime="application/zip"
             )
 
