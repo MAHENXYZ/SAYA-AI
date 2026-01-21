@@ -1,94 +1,194 @@
 import streamlit as st
 from groq import Groq
 import json
-import os
 import time
-import hashlib
 from pypdf import PdfReader
-import pandas as pd
 
-# [CONFIG] Konfigurasi Dasar
-st.set_page_config(page_title="Flow Intelligence", page_icon="✨", layout="wide")
+# [CONFIG] Ultra-Wide Premium Setup
+st.set_page_config(
+    page_title="NEURAL FLOW | Premium AI", 
+    page_icon="💎", 
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# [STYLING] Sistem Desain Obsidian Gold
-def apply_styles():
+# [STYLING] Obsidian & Liquid Gold Design System
+def apply_premium_styles():
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;600&display=swap');
-    :root { --accent-gold: #C5A059; --dark-obsidian: #0A0A0A; }
-    .stApp { background-color: var(--dark-obsidian); color: #F5F5F7; font-family: 'Inter', sans-serif; }
-    .nav-brand { font-family: 'Instrument Serif', serif; font-size: 32px; color: var(--accent-gold); }
-    div.stButton > button { background: transparent; color: var(--accent-gold); border: 1px solid var(--accent-gold); }
-    div.stButton > button:hover { background: var(--accent-gold); color: black; }
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&family=Playfair+Display:ital@0;1&display=swap');
+    
+    :root {
+        --accent-gold: #D4AF37;
+        --deep-black: #050505;
+        --glass-white: rgba(255, 255, 255, 0.05);
+    }
+    
+    .stApp {
+        background: radial-gradient(circle at top right, #1a1a1a, #050505);
+        color: #E0E0E0;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+    
+    /* Elegant Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: rgba(10, 10, 10, 0.95) !important;
+        border-right: 1px solid rgba(212, 175, 55, 0.2);
+    }
+    
+    /* Typography */
+    .hero-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 3.5rem;
+        background: linear-gradient(90deg, #D4AF37, #FBE7A1, #D4AF37);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-style: italic;
+        margin-bottom: 0;
+    }
+    
+    .sub-text {
+        letter-spacing: 3px;
+        font-size: 0.8rem;
+        color: var(--accent-gold);
+        text-transform: uppercase;
+        margin-bottom: 2rem;
+    }
+
+    /* Glassmorphism Cards */
+    .stChatMessage {
+        background: var(--glass-white) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 15px !important;
+        padding: 20px !important;
+        backdrop-filter: blur(10px);
+    }
+
+    /* Gold Buttons */
+    div.stButton > button {
+        background: linear-gradient(45deg, #D4AF37, #996515);
+        color: black !important;
+        border: none;
+        font-weight: 600;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+    }
+    
+    div.stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+    }
+
+    /* Inputs */
+    .stTextInput input, .stTextArea textarea {
+        background: #0F0F0F !important;
+        border: 1px solid #333 !important;
+        color: #D4AF37 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# [SESSION] Inisialisasi Memori
-if "init" not in st.session_state:
-    st.session_state.update({
-        "init": True, "memory": [], "authenticated": False, 
-        "user_prefs": {"bio": "", "verbosity": "Balanced"}, "doc_context": ""
-    })
+# [CORE] Initialize Intelligence Engine
+if "memory" not in st.session_state:
+    st.session_state.memory = []
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
-# [AUTH] Gerbang Keamanan
 def check_auth():
     if not st.session_state.authenticated:
-        st.markdown("<div style='text-align:center'><h1 class='nav-brand'>NEURAL VAULT</h1></div>", unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([1, 2, 1])
+        st.markdown("<div style='height: 15vh'></div>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 1.5, 1])
         with col2:
-            key = st.text_input("ACCESS KEY", type="password")
-            if st.button("INITIALIZE SCAN", use_container_width=True):
-                if key == "ADMIN": # Ganti password di sini
+            st.markdown("<h1 class='hero-title' style='text-align:center'>Vault</h1>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align:center; color:#666'>SYSTEM ACCESS REQUIRED</p>", unsafe_allow_html=True)
+            key = st.text_input("ENCRYPTION KEY", type="password", label_visibility="collapsed")
+            if st.button("BYPASS FIREWALL", use_container_width=True):
+                if key == "LUXE": # Password baru
                     st.session_state.authenticated = True
                     st.rerun()
-                else: st.error("Access Denied")
+                else: st.toast("Access Denied: Invalid Protocol", icon="🚫")
         return False
     return True
 
-# [MAIN] Eksekusi Aplikasi
 def main():
-    apply_styles()
+    apply_premium_styles()
     if not check_auth(): return
 
-    # Sidebar
+    # --- SIDEBAR NAV ---
     with st.sidebar:
-        st.markdown('<div class="nav-brand">FLOW.AI</div>', unsafe_allow_html=True)
-        model = st.selectbox("Intelligence", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
+        st.markdown("<h2 class='hero-title' style='font-size:2rem'>Neural Flow</h2>", unsafe_allow_html=True)
+        st.markdown("<p class='sub-text'>Intelligence OS v2.0</p>", unsafe_allow_html=True)
         
-        with st.expander("👤 PROFILE"):
-            bio = st.text_area("User Bio", st.session_state.user_prefs["bio"])
-            if st.button("Save"): st.session_state.user_prefs["bio"] = bio
+        st.divider()
+        model = st.selectbox("MODEL CORE", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
+        
+        with st.expander("💠 NEURAL BIOMETRICS"):
+            bio = st.text_area("Persona", placeholder="Describe yourself...", height=100)
+            tone = st.select_slider("Response Depth", options=["Concise", "Balanced", "Sophisticated"])
             
-        pdf = st.file_uploader("Knowledge (PDF)", type="pdf")
-        if pdf:
-            reader = PdfReader(pdf)
-            st.session_state.doc_context = "\n".join([p.extract_text() for p in reader.pages])
-            st.success("Synced")
+        with st.expander("📚 KNOWLEDGE VAULT"):
+            pdf = st.file_uploader("Inject Data (PDF)", type="pdf")
+            if pdf:
+                with st.spinner("Processing..."):
+                    reader = PdfReader(pdf)
+                    text = "\n".join([p.extract_text() for p in reader.pages])
+                    st.session_state.doc_context = text
+                    st.toast("Intelligence Synced", icon="✅")
 
-    # Chat UI
+    # --- CHAT INTERFACE ---
+    st.markdown("<p class='sub-text'>System Online</p>", unsafe_allow_html=True)
+    
+    # Display Chat History
     for msg in st.session_state.memory:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    if prompt := st.chat_input("Command the Intelligence..."):
+    # Chat Input
+    if prompt := st.chat_input("Enter Command..."):
         st.session_state.memory.append({"role": "user", "content": prompt})
-        with st.chat_message("user"): st.markdown(prompt)
+        with st.chat_message("user"):
+            st.markdown(prompt)
 
         try:
-            # Menggunakan API Key dari Streamlit Secrets
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-            full_prompt = f"Context: {st.session_state.doc_context[:1000]}\nUser Bio: {st.session_state.user_prefs['bio']}\n\nQuestion: {prompt}"
             
-            response = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": full_prompt}]
-            ).choices[0].message.content
-            
+            # System Prompting (Kunci AI Terlihat Cerdas)
+            system_prompt = f"""
+            You are 'Flow Intelligence', a sophisticated and elite AI assistant. 
+            Tone: Professional, luxurious, and highly insightful.
+            User Profile: {bio}
+            Context: {st.session_state.get('doc_context', '')[:2000]}
+            Complexity Level: {tone}
+            """
+
+            full_messages = [
+                {"role": "system", "content": system_prompt},
+                *st.session_state.memory[-5:] # Kirim 5 pesan terakhir untuk memori
+            ]
+
             with st.chat_message("assistant"):
-                st.markdown(response)
-            st.session_state.memory.append({"role": "assistant", "content": response})
+                response_placeholder = st.empty()
+                full_response = ""
+                
+                # Streaming Effect
+                completion = client.chat.completions.create(
+                    model=model,
+                    messages=full_messages,
+                    stream=True
+                )
+                
+                for chunk in completion:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        full_response += content
+                        response_placeholder.markdown(full_response + "▌")
+                
+                response_placeholder.markdown(full_response)
+                
+            st.session_state.memory.append({"role": "assistant", "content": full_response})
+
         except Exception as e:
-            st.error(f"Error: {e}. Pastikan 'GROQ_API_KEY' sudah diatur di Secrets Streamlit.")
+            st.error(f"Neural Bridge Failure: {e}")
 
 if __name__ == "__main__":
     main()
