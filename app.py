@@ -1,157 +1,187 @@
 import streamlit as st
 from groq import Groq
 import base64
+from PIL import Image
+import io
 
-# --- 1. CONFIGURATION ---
+# --- 1. KONFIGURASI HALAMAN ULTRA PREMIUM ---
 st.set_page_config(
-    page_title="Gemini Ultra",
+    page_title="Gemini Ultra Max",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- 2. LUXURY GEMINI CSS ---
+# --- 2. CSS MEWAH & ANIMASI (LEVEL PROFESIONAL) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
 
     /* Background Utama */
     .stApp {
-        background-color: #0e0e10;
+        background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0c 100%);
         color: #e3e3e3;
         font-family: 'Google Sans', sans-serif;
     }
 
-    /* Header Animasi */
-    .gemini-gradient {
+    /* Judul Animasi Gradasi */
+    .gemini-title {
         background: linear-gradient(90deg, #4285f4, #9b72cb, #d96570, #4285f4);
-        background-size: 300% 300%;
-        animation: gradient-move 8s ease infinite;
+        background-size: 200% auto;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 56px;
-        font-weight: 500;
-        letter-spacing: -1px;
+        font-size: 64px;
+        font-weight: 700;
+        letter-spacing: -2px;
+        animation: shine 5s linear infinite;
+        margin-bottom: 0px;
     }
 
-    @keyframes gradient-move {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+    @keyframes shine {
+        to { background-position: 200% center; }
     }
 
-    /* Sidebar Ultra Modern */
+    /* Sidebar Glassmorphism */
     [data-testid="stSidebar"] {
-        background-color: #171719 !important;
-        border-right: 1px solid #2d2d2f;
+        background-color: rgba(20, 20, 25, 0.7) !important;
+        backdrop-filter: blur(15px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    /* Input Chat ala Google */
+    /* Input Chat Melayang */
     .stChatInputContainer {
-        border-radius: 32px !important;
-        background: #1e1f20 !important;
-        border: 1px solid #3c4043 !important;
-        padding: 8px 16px !important;
-        margin-bottom: 20px;
+        border-radius: 35px !important;
+        background: rgba(40, 40, 45, 0.9) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        padding: 10px 20px !important;
     }
 
-    /* Tombol Sidebar */
+    /* Pesan Chat yang Bersih */
+    .stChatMessage {
+        border-radius: 20px;
+        margin-bottom: 10px;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    /* Sembunyikan Header Streamlit */
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* Styling Button */
     .stButton>button {
-        border-radius: 12px;
-        background-color: #2d2d2f;
+        width: 100%;
+        border-radius: 15px;
+        background: linear-gradient(45deg, #4285f4, #9b72cb);
         color: white;
         border: none;
+        font-weight: 500;
         transition: 0.3s;
     }
     .stButton>button:hover {
-        background-color: #3c4043;
-        border: 1px solid #4285f4;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(66, 133, 244, 0.4);
     }
-
-    /* Pesan Chat */
-    .stChatMessage {
-        background-color: transparent !important;
-        border: none !important;
-        padding-top: 2rem !important;
-    }
-
-    /* Menghilangkan elemen default Streamlit */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. LOGIC & API ---
+# --- 3. FUNGSI TEKNIS ---
+def encode_image(image_file):
+    return base64.b64encode(image_file.getvalue()).decode('utf-8')
+
+# Konek ke Groq
 api_key = st.secrets.get("GROQ_API_KEY")
 client = Groq(api_key=api_key)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- 4. SIDEBAR ---
+# --- 4. SIDEBAR CANGGIH ---
 with st.sidebar:
-    st.markdown("<h2 style='color: white; margin-bottom: 20px;'>Gemini</h2>", unsafe_allow_html=True)
+    st.markdown("<h1 style='color: white; font-size: 28px;'>Gemini Ultra</h1>", unsafe_allow_html=True)
+    st.write("###")
     
+    # Pilih Model Profesional
     model_choice = st.selectbox(
-        "Intelligence Mode",
+        "Intelligence Engine",
         ["llama-3.2-11b-vision-preview", "llama-3.3-70b-versatile"],
-        index=1
+        index=0,
+        help="Pilih Vision untuk analisis gambar!"
     )
     
     st.divider()
-    st.markdown("### 📷 Vision & Docs")
-    uploaded_file = st.file_uploader("Tambahkan gambar atau teks", type=["jpg", "png", "txt"])
     
-    if st.button("🗑️ Clear Chat", use_container_width=True):
+    # Upload Center
+    st.markdown("### 📤 Resource Upload")
+    up_img = st.file_uploader("Upload Image (Vision)", type=["jpg", "jpeg", "png"])
+    up_txt = st.file_uploader("Upload Document (Analysis)", type=["txt"])
+    
+    st.write("###")
+    if st.button("🗑️ Reset Intelligence Memory"):
         st.session_state.messages = []
         st.rerun()
 
-# --- 5. MAIN INTERFACE ---
-# Spacer atas
-st.write("##")
-st.markdown("<h1 class='gemini-gradient'>Halo, Mahendra</h1>", unsafe_allow_html=True)
-st.markdown("<p style='font-size: 24px; color: #8e918f;'>Ada yang bisa saya bantu hari ini?</p>", unsafe_allow_html=True)
+# --- 5. INTERFACE UTAMA ---
+st.markdown("<h1 class='gemini-title'>Halo, Mahendra</h1>", unsafe_allow_html=True)
+st.markdown("<p style='font-size: 24px; color: #aaa; margin-top: -10px;'>Mau eksplorasi apa hari ini?</p>", unsafe_allow_html=True)
+st.write("---")
 
-# Tampilkan riwayat chat
+# Render Riwayat Chat
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- 6. CHAT INPUT & RESPONSE ---
-if prompt := st.chat_input("Tulis pertanyaan Anda di sini..."):
+# --- 6. LOGIKA CHAT & VISION ---
+if prompt := st.chat_input("Tanyakan sesuatu pada Gemini Ultra..."):
     
+    # Simpan Chat User
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
+        placeholder = st.empty()
+        full_res = ""
         
-        # Logika Vision jika ada gambar
-        if uploaded_file and "vision" in model_choice and uploaded_file.type in ["image/jpeg", "image/png"]:
-            # (Fitur Vision diaktifkan di sini)
-            content_list = [{"type": "text", "text": prompt}]
-            # Tambahkan proses image encoding jika diperlukan
-            
-            completion = client.chat.completions.create(
-                model=model_choice,
-                messages=[{"role": "user", "content": prompt}],
-                stream=True
-            )
+        # Susun Pesan API
+        api_messages = []
+        
+        # Fitur VISION (Jika ada gambar)
+        if up_img and "vision" in model_choice:
+            img_b64 = encode_image(up_img)
+            api_messages = [{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
+                ]
+            }]
         else:
-            # Teks normal
-            completion = client.chat.completions.create(
-                model=model_choice,
-                messages=[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
-                stream=True
-            )
+            # Fitur DOKUMEN & TEKS
+            context = ""
+            if up_txt:
+                context = f"[KONTEKS DOKUMEN]: {up_txt.read().decode('utf-8')}\n\n"
+            
+            api_messages = [
+                {"role": "system", "content": "You are Gemini Ultra, a professional AI by Google. Be smart and helpful."},
+                *[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
+                {"role": "user", "content": context + prompt}
+            ]
 
-        for chunk in completion:
-            full_response += (chunk.choices[0].delta.content or "")
-            message_placeholder.markdown(full_response + "▌")
+        # PROSES STREAMING (CANGGIH)
+        completion = client.chat.completions.create(
+            model=model_choice,
+            messages=api_messages,
+            temperature=0.7,
+            stream=True
+        )
         
-        message_placeholder.markdown(full_response)
+        for chunk in completion:
+            content = chunk.choices[0].delta.content or ""
+            full_res += content
+            placeholder.markdown(full_res + "▌")
+        
+        placeholder.markdown(full_res)
     
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+    st.session_state.messages.append({"role": "assistant", "content": full_res})
