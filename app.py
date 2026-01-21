@@ -1,156 +1,97 @@
 import streamlit as st
 from groq import Groq
-import json
-import time
 from pypdf import PdfReader
-from PIL import Image
-import io
+import time
 
-# [CONFIG] Gemini-Inspired Premium Layout
-st.set_page_config(
-    page_title="GEMINI FLOW OS", 
-    page_icon="✨", 
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# [CONFIG]
+st.set_page_config(page_title="NEURAL FLOW PRO", layout="wide")
 
-# [STYLING] Minimalist High-Tech Interface
-def apply_gemini_styles():
-    st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+# [STYLING] Gemini-Inspired Dark Theme
+st.markdown("""
+<style>
+    .stApp { background-color: #050505; color: #e0e0e0; }
+    .gemini-gradient {
+        background: linear-gradient(90deg, #4285F4, #9B72CB, #D4AF37);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-size: 32px; font-weight: bold;
+    }
+    .status-tag { color: #D4AF37; font-size: 12px; letter-spacing: 2px; }
+</style>
+""", unsafe_allow_html=True)
+
+if "memory" not in st.session_state: st.session_state.memory = []
+
+# --- CORE ENGINE: UNLIMITED CODE GENERATION ---
+def generate_unlimited_response(prompt, model_choice):
+    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
     
-    .stApp {
-        background-color: #0E1117;
-        color: #E2E2E2;
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* Gradient Title ala Gemini */
-    .gemini-title {
-        background: linear-gradient(90deg, #4285F4, #9B72CB, #D96570);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 3rem;
-        font-weight: 600;
-        margin-bottom: 0px;
-    }
-
-    /* Chat Bubbles Modern */
-    [data-testid="stChatMessage"] {
-        border-radius: 20px !important;
-        margin-bottom: 15px;
-        border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    /* Floating Input Bar */
-    .stChatInputContainer {
-        padding-bottom: 2rem;
-    }
-
-    /* Sidebar Glass */
-    [data-testid="stSidebar"] {
-        background-color: #161B22 !important;
-        border-right: 1px solid #30363D;
-    }
+    full_response = ""
+    placeholder = st.empty()
     
-    /* Premium Buttons */
-    .stButton>button {
-        border-radius: 50px;
-        border: 1px solid #30363D;
-        background: transparent;
-        color: white;
-        transition: 0.3s;
-    }
-    .stButton>button:hover {
-        background: rgba(66, 133, 244, 0.1);
-        border-color: #4285F4;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # System Instruction khusus untuk Coding tanpa batas
+    messages = [
+        {"role": "system", "content": "You are a Senior Full-Stack Architect. Provide complete, production-ready code. If the code is extremely long, do not truncate it. Finish the current thought and I will ask you to continue."},
+        {"role": "user", "content": prompt}
+    ]
+    
+    continue_generating = True
+    iteration = 0
 
-# [LOGIC] Session State & Auth
-if "memory" not in st.session_state:
-    st.session_state.memory = []
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+    while continue_generating and iteration < 10: # Limit 10x loop untuk keamanan
+        with st.spinner("Neural engine processing..."):
+            completion = client.chat.completions.create(
+                model=model_choice,
+                messages=messages,
+                stream=True,
+                max_tokens=4096 # Maksimal token per hit
+            )
+            
+            partial_text = ""
+            for chunk in completion:
+                content = chunk.choices[0].delta.content
+                if content:
+                    partial_text += content
+                    full_response += content
+                    placeholder.markdown(full_response + " █")
+            
+            # LOGIKA DETEKSI TERPOTONG:
+            # Jika output tidak diakhiri dengan penutup markdown kode (```) 
+            # atau terlihat seperti kalimat menggantung.
+            if "```" in partial_text[-5:] or iteration > 5:
+                continue_generating = False
+            else:
+                # Otomatis minta sambungan (Recursive call)
+                messages.append({"role": "assistant", "content": partial_text})
+                messages.append({"role": "user", "content": "The code was truncated. Continue exactly where you left off. Do not repeat the beginning, just continue the code."})
+                iteration += 1
+                time.sleep(1) # Bypass rate limit
+                
+    placeholder.markdown(full_response)
+    return full_response
 
 def main():
-    apply_gemini_styles()
-    
-    # --- HEADER ---
-    st.markdown("<h1 class='gemini-title'>Gemini Flow</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color:#80868B; margin-bottom:2rem;'>Advanced Neural Multimodal Interface</p>", unsafe_allow_html=True)
+    st.markdown("<p class='status-tag'>SYSTEM ONLINE | UNLIMITED CODE MODE</p>", unsafe_allow_html=True)
+    st.markdown("<h1 class='gemini-gradient'>Neural Flow Architect</h1>", unsafe_allow_html=True)
 
-    # --- SIDEBAR: KNOWLEDGE & VISION ---
     with st.sidebar:
-        st.image("https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d473530393318e3d91f45.svg", width=50)
-        st.divider()
-        
-        # Multimodal Input (Khas Gemini)
-        st.subheader("🖼️ Vision & Data")
-        uploaded_img = st.file_uploader("Upload Image for Analysis", type=['jpg', 'png', 'jpeg'])
-        if uploaded_img:
-            st.image(uploaded_img, caption="Image Processed", use_column_width=True)
-            
-        uploaded_pdf = st.file_uploader("Upload Document (PDF)", type=['pdf'])
-        if uploaded_pdf:
-            reader = PdfReader(uploaded_pdf)
-            st.session_state.context = "\n".join([p.extract_text() for p in reader.pages])
-            st.success("Document Ingested")
+        st.header("Settings")
+        model = st.selectbox("Intelligence Level", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
+        st.info("Mode 'Unlimited Code' aktif secara otomatis. AI akan terus menulis sampai blok kode ditutup (```).")
+        if st.button("Clear Memory"):
+            st.session_state.memory = []
+            st.rerun()
 
-        st.divider()
-        model_choice = st.selectbox("Intelligence Core", ["llama-3.3-70b-versatile", "llama-3.2-11b-vision-preview"])
-
-    # --- CHAT ENGINE ---
-    # Render History
+    # Chat UI
     for msg in st.session_state.memory:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+        with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
-    # User Input
-    if prompt := st.chat_input("Ask Gemini Flow anything..."):
+    if prompt := st.chat_input("Tulis tugas coding yang sangat panjang di sini..."):
         st.session_state.memory.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        with st.chat_message("user"): st.markdown(prompt)
 
-        try:
-            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-            
-            # Gemini-style Prompt Engineering
-            sys_msg = "You are Gemini Flow, a helpful and harmless AI assistant. Provide insightful, structured, and elegant responses."
-            
-            messages = [{"role": "system", "content": sys_msg}]
-            # Tambahkan konteks dokumen jika ada
-            if "context" in st.session_state:
-                messages.append({"role": "system", "content": f"Context: {st.session_state.context[:3000]}"})
-            
-            # Tambahkan memori (history)
-            messages.extend(st.session_state.memory[-6:])
-
-            with st.chat_message("assistant"):
-                placeholder = st.empty()
-                full_res = ""
-                
-                # Stream Response ala Gemini
-                stream = client.chat.completions.create(
-                    model=model_choice,
-                    messages=messages,
-                    stream=True
-                )
-                
-                for chunk in stream:
-                    content = chunk.choices[0].delta.content
-                    if content:
-                        full_res += content
-                        placeholder.markdown(full_res + " ●") # Simbol kursor Gemini
-                
-                placeholder.markdown(full_res)
-            
-            st.session_state.memory.append({"role": "assistant", "content": full_res})
-
-        except Exception as e:
-            st.error(f"System Error: {str(e)}")
+        with st.chat_message("assistant"):
+            final_res = generate_unlimited_response(prompt, model)
+            st.session_state.memory.append({"role": "assistant", "content": final_res})
 
 if __name__ == "__main__":
     main()
