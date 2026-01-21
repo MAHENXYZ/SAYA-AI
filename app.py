@@ -1,170 +1,240 @@
 import streamlit as st
 from groq import Groq
 import base64
+from PIL import Image
+import io
+import time
+from datetime import datetime
 
-# --- 1. SETTING PAGE: WISPR STYLE ---
-st.set_page_config(
-    page_title="Flow",
-    page_icon="◦",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
-
-# --- 2. THE WISPR FLOW "VIBE" CSS ---
-st.markdown("""
-    <style>
-    /* Menggunakan font premium: Playfair Display untuk Serif, Inter untuk Sans */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&family=Playfair+Display:ital,wght@0,400;1,400&display=swap');
+# =============================================================================
+# 1. ELITE SYSTEM ARCHITECTURE & ENGINE CONFIGURATION
+# =============================================================================
+class WisprFlowEngine:
+    """Sistem manajemen state dan logika backend tingkat tinggi."""
     
+    def __init__(self):
+        self.api_key = st.secrets.get("GROQ_API_KEY", "")
+        if not self.api_key:
+            st.error("CRITICAL ERROR: API KEY NOT DETECTED IN SECRETS.")
+            st.stop()
+        self.client = Groq(api_key=self.api_key)
+
+    @staticmethod
+    def get_image_payload(uploaded_file):
+        """Memproses data visual ke dalam format base64 dengan optimasi buffer."""
+        if uploaded_file is not None:
+            return base64.b64encode(uploaded_file.getvalue()).decode('utf-8')
+        return None
+
+    def execute_stream(self, model, messages):
+        """Menjalankan stream completion dengan penanganan error enterprise."""
+        try:
+            return self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.4,
+                max_tokens=4096,
+                stream=True
+            )
+        except Exception as e:
+            st.error(f"ENGINE FAILURE: {str(e)}")
+            return None
+
+# =============================================================================
+# 2. DESIGN SYSTEM INJECTION (WISPR FLOW REPLICA)
+# =============================================================================
+def apply_wispr_design_system():
+    """Injeksi CSS tingkat lanjut untuk estetika Apple-style Minimalism."""
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@100;200;300;400;500&display=swap');
+    
+    /* Root Variables & Base */
+    :root {
+        --wispr-bg: #000000;
+        --wispr-text: #FFFFFF;
+        --wispr-muted: rgba(255, 255, 255, 0.4);
+        --wispr-border: rgba(255, 255, 255, 0.08);
+    }
+
     .stApp {
-        background-color: #000000;
-        color: #ffffff;
+        background-color: var(--wispr-bg);
+        color: var(--wispr-text);
         font-family: 'Inter', sans-serif;
     }
 
-    /* Logo & Nav di tengah seperti Wispr */
-    .nav-header {
+    /* Top Navigation (Fixed & Minimalist) */
+    .wispr-nav {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        padding: 30px;
-        text-align: center;
-        z-index: 1000;
-        background: rgba(0,0,0,0.8);
-        backdrop-filter: blur(10px);
+        padding: 40px 60px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 999;
+        background: linear-gradient(to bottom, black 20%, transparent);
     }
 
-    .nav-logo {
-        letter-spacing: 0.5em;
-        font-size: 12px;
-        font-weight: 300;
-        color: rgba(255,255,255,0.5);
+    .nav-brand {
+        letter-spacing: 10px;
+        font-size: 11px;
+        font-weight: 200;
+        opacity: 0.5;
         text-transform: uppercase;
     }
 
-    /* Hero Text: Kunci Mewah WisprFlow */
-    .hero-section {
-        margin-top: 15vh;
-        margin-bottom: 5vh;
+    /* The Hero Section (Typography Masterpiece) */
+    .wispr-hero {
+        margin-top: 25vh;
+        margin-bottom: 10vh;
         text-align: center;
+        animation: fadeIn 2s ease-in-out;
     }
 
-    .hero-title {
-        font-family: 'Playfair Display', serif;
-        font-size: clamp(40px, 8vw, 80px);
+    .wispr-title {
+        font-family: 'Instrument Serif', serif;
+        font-size: clamp(50px, 10vw, 110px);
         font-style: italic;
+        line-height: 0.95;
         font-weight: 400;
-        line-height: 1.1;
-        background: linear-gradient(180deg, #FFFFFF 0%, rgba(255,255,255,0.4) 100%);
+        background: linear-gradient(180deg, #FFFFFF 30%, rgba(255,255,255,0.2) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        letter-spacing: -2px;
     }
 
-    /* Chat Area: Sangat Lapang */
-    .chat-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding-bottom: 150px;
-    }
-
+    /* Chat Layout & Bubbles */
     .stChatMessage {
         background-color: transparent !important;
         border: none !important;
-        margin-bottom: 2rem !important;
+        padding: 2rem 22% !important;
     }
 
-    /* Teks AI & User */
     .stChatMessage [data-testid="stMarkdownContainer"] p {
-        font-size: 1.2rem !important;
-        font-weight: 300 !important;
+        font-size: 20px !important;
+        font-weight: 200 !important;
         line-height: 1.7 !important;
-        color: rgba(255,255,255,0.9);
+        color: #EAEAEA;
     }
 
-    /* Input Bar yang 'Melayang' dan Bersih */
+    /* Sophisticated Input Bar (Wispr Signature) */
     .stChatInputContainer {
-        padding: 40px 10% !important;
-        background: linear-gradient(to top, #000 60%, transparent) !important;
+        padding: 60px 20% !important;
+        background: linear-gradient(to top, black 50%, transparent) !important;
         border: none !important;
     }
 
     div[data-testid="stChatInput"] {
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        background: rgba(255,255,255,0.05) !important;
-        border-radius: 100px !important; /* Pill style */
-        padding: 10px 25px !important;
+        border: 1px solid var(--wispr-border) !important;
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-radius: 100px !important;
+        padding: 15px 30px !important;
+        transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
     }
 
-    /* Sembunyikan Elemen Streamlit yang merusak estetika */
-    [data-testid="stSidebar"], header, footer { display: none; }
-    
-    /* Tombol */
-    button {
-        background: transparent !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        color: white !important;
-        border-radius: 50px !important;
+    div[data-testid="stChatInput"]:focus-within {
+        border-color: rgba(255, 255, 255, 0.3) !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        transform: scale(1.01);
     }
+
+    /* Utility Elements */
+    header, footer, [data-testid="stSidebar"] { display: none; }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Custom Reset Button Style */
+    .reset-trigger {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        font-size: 10px;
+        letter-spacing: 2px;
+        opacity: 0.3;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .reset-trigger:hover { opacity: 1; color: #C5A059; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. CORE LOGIC ---
-client = Groq(api_key=st.secrets.get("GROQ_API_KEY", "ISI_API_KEY_DISINI"))
+# =============================================================================
+# 3. APPLICATION BOOTSTRAPPER
+# =============================================================================
+def main():
+    # Initialize Engine
+    engine = WisprFlowEngine()
+    apply_wispr_design_system()
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# --- 4. VIEW ---
-st.markdown('<div class="nav-header"><div class="nav-logo">Flow Intelligence</div></div>', unsafe_allow_html=True)
-
-if not st.session_state.messages:
+    # Session State Persistence
+    if "flow_memory" not in st.session_state:
+        st.session_state.flow_memory = []
+    
+    # Navigation Layer
     st.markdown("""
-        <div class="hero-section">
-            <h1 class="hero-title">Experience the<br>poetry of thought.</h1>
-            <p style="color:rgba(255,255,255,0.4); letter-spacing:2px; font-size:12px; margin-top:20px;">AI FOR THE STRATEGIC MIND</p>
+        <div class="wispr-nav">
+            <div class="nav-brand">Flow v4.0</div>
+            <div style="font-size: 10px; opacity: 0.4;">STRATEGIC NODE: ALPHA-1</div>
         </div>
     """, unsafe_allow_html=True)
 
-# Container Chat
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
-st.markdown('</div>', unsafe_allow_html=True)
+    # UI Logic: Hero or Chat History
+    if not st.session_state.flow_memory:
+        st.markdown("""
+            <div class="wispr-hero">
+                <h1 class="wispr-title">The silence<br>of intelligence.</h1>
+                <p style="margin-top:30px; font-weight:200; opacity:0.3; letter-spacing:4px; font-size:12px;">
+                    CONVERSE WITH THE FLOW
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Menampilkan riwayat chat dengan spasi yang sangat lapang
+        for msg in st.session_state.flow_memory:
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
 
-# --- 5. INTERACTION ---
-if prompt := st.chat_input("Write your flow..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.write(prompt)
+    # --- INPUT LAYER ---
+    if prompt := st.chat_input("Enter your flow..."):
+        # Tambahkan ke memori dan refresh
+        st.session_state.flow_memory.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.write(prompt)
 
-    with st.chat_message("assistant"):
-        placeholder = st.empty()
-        full_response = ""
-        
-        try:
-            # Menggunakan Model Terkuat (Llama 3.3 70B)
-            stream = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": "You are Flow. Your response is direct, elegant, and highly professional. Use sophisticated vocabulary but keep it concise."},
-                    *[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
-                ],
-                stream=True
-            )
-            for chunk in stream:
-                content = chunk.choices[0].delta.content or ""
-                full_response += content
-                placeholder.markdown(full_response + "◦")
+        # Generate Response
+        with st.chat_message("assistant"):
+            placeholder = st.empty()
+            full_response = ""
             
-            placeholder.markdown(full_response)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-        except Exception as e:
-            st.error(f"Operational Error: {e}")
+            # Persiapkan pesan (Contextual Awareness)
+            api_messages = [
+                {"role": "system", "content": "You are Flow. You respond with extreme clarity, professional depth, and a calm, sophisticated tone. No emojis. Just wisdom."},
+                *[{"role": m["role"], "content": m["content"]} for m in st.session_state.flow_memory]
+            ]
 
-# Tombol Reset Mewah di pojok bawah
-if st.session_state.messages:
-    if st.button("CLEAR FLOW"):
-        st.session_state.messages = []
+            stream = engine.execute_stream("llama-3.3-70b-versatile", api_messages)
+            
+            if stream:
+                for chunk in stream:
+                    delta = chunk.choices[0].delta.content or ""
+                    full_response += delta
+                    # Efek kursor Wispr (◦)
+                    placeholder.markdown(full_response + "◦")
+                
+                placeholder.markdown(full_response)
+                st.session_state.flow_memory.append({"role": "assistant", "content": full_response})
+                st.rerun()
+
+    # Hidden Functional Footer
+    st.markdown('<div class="reset-trigger">0x00: REBOOT SYSTEM</div>', unsafe_allow_html=True)
+    if st.button("TERMINATE", help="Wipe all data", use_container_width=False):
+        st.session_state.flow_memory = []
         st.rerun()
+
+if __name__ == "__main__":
+    main()
