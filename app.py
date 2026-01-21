@@ -3,250 +3,145 @@ from groq import Groq
 import base64
 from PIL import Image
 import io
-import time
-from datetime import datetime
 
-# =============================================================================
-# 1. CORE SYSTEM CONFIGURATION (PREMIUM SETTINGS)
-# =============================================================================
-class NeuralEliteSystem:
-    TITLE = "NEURAL ELITE v4.0 | Advanced Intelligence"
-    ICON = "💎"
-    THEME_PRIMARY = "#C5A059"  # Champagne Gold
-    THEME_DARK = "#050505"     # Pure Obsidian
-    SYSTEM_PROMPT = """
-    You are Neural Elite v4.0, a highly sophisticated AI operating system. 
-    Your communication is executive, concise, and professional. 
-    You provide expert-level analysis and creative solutions.
-    """
+# --- 1. ARCHITECTURAL CONFIGURATION ---
+st.set_page_config(
+    page_title="FLOW | Strategic Intelligence",
+    page_icon="⚪",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# =============================================================================
-# 2. ULTRA-PREMIUM UI INJECTION (ADVANCED CSS)
-# =============================================================================
-def inject_premium_ui():
-    st.markdown(f"""
+# --- 2. WISPR FLOW AESTHETIC (CSS) ---
+st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@200;300;400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@200;300;400;500&display=swap');
     
-    /* Global Reset & Background */
-    .stApp {{
-        background: {NeuralEliteSystem.THEME_DARK};
-        background-image: 
-            radial-gradient(circle at 0% 0%, rgba(197, 160, 89, 0.05) 0%, transparent 40%),
-            radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
-        color: #F8F9FA;
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }}
+    /* Wispr Flow Foundation */
+    .stApp {
+        background-color: #000000; /* Atau #FFFFFF jika ingin versi terang */
+        color: #FFFFFF;
+        font-family: 'Inter', sans-serif;
+    }
 
-    /* Custom Header Navigation */
-    .premium-header {{
+    /* Minimalist Header */
+    .nav-bar {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1.5rem 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        margin-bottom: 3rem;
-    }}
+        justify-content: center;
+        padding: 40px 0;
+        letter-spacing: 8px;
+        font-size: 14px;
+        font-weight: 200;
+        text-transform: uppercase;
+        opacity: 0.6;
+    }
 
-    .logo-container {{
-        font-family: 'Space Grotesk', sans-serif;
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: 5px;
-        background: linear-gradient(90deg, #FFFFFF, {NeuralEliteSystem.THEME_PRIMARY});
+    /* Wisdom Typography (The Wispr Style) */
+    .hero-text {
+        font-family: 'Instrument Serif', serif;
+        font-size: 64px;
+        text-align: center;
+        margin: 40px 0;
+        background: linear-gradient(180deg, #FFFFFF 0%, #888888 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-    }}
+        line-height: 1.1;
+    }
 
-    /* Sidebar Glass-Aesthetic */
-    [data-testid="stSidebar"] {{
-        background: rgba(10, 10, 10, 0.98) !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(20px);
-    }}
+    /* Clean Chat Container */
+    .stChatMessage {
+        background: transparent !important;
+        border: none !important;
+        padding: 1rem 15% !important;
+    }
 
-    /* Chat Architecture: The Professional Look */
-    .message-row {{
-        max-width: 900px;
-        margin: 0 auto 2rem auto;
-        animation: slideUp 0.6s ease-out;
-    }}
+    .stChatMessage [data-testid="stMarkdownContainer"] p {
+        font-size: 18px;
+        font-weight: 300;
+        line-height: 1.6;
+        color: #D1D1D1;
+    }
 
-    .message-card {{
-        padding: 2rem;
-        border-radius: 4px; /* Sharp professional edges */
-        border: 1px solid rgba(255, 255, 255, 0.04);
-        position: relative;
-    }}
+    /* User Message Styling (Right Aligned like Wispr) */
+    [data-testid="stChatMessage"]:nth-child(even) {
+        text-align: right;
+        color: #FFFFFF;
+    }
 
-    .ai-response {{
-        background: linear-gradient(135deg, rgba(197, 160, 89, 0.03) 0%, transparent 100%);
-        border-left: 2px solid {NeuralEliteSystem.THEME_PRIMARY};
-    }}
+    /* Minimalist Input Bar */
+    .stChatInputContainer {
+        padding: 40px 20% !important;
+        background: transparent !important;
+        border: none !important;
+    }
 
-    .user-inquiry {{
-        background: rgba(255, 255, 255, 0.01);
-        border-left: 1px solid rgba(255, 255, 255, 0.1);
-    }}
-
-    .role-tag {{
-        font-family: 'Space Grotesk', sans-serif;
-        font-size: 9px;
-        letter-spacing: 2px;
-        color: {NeuralEliteSystem.THEME_PRIMARY};
-        text-transform: uppercase;
-        margin-bottom: 1rem;
-        font-weight: 600;
-    }}
-
-    /* Premium Input Field */
-    .stChatInputContainer {{
-        padding: 2rem 12% !important;
-        background: {NeuralEliteSystem.THEME_DARK} !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-    }}
-
-    div[data-testid="stChatInput"] {{
+    div[data-testid="stChatInput"] {
+        background: rgba(255, 255, 255, 0.03) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        background: rgba(255, 255, 255, 0.01) !important;
-        border-radius: 4px !important;
-    }}
+        border-radius: 40px !important; /* Pill shape */
+        padding: 10px 20px !important;
+    }
 
-    /* Animation Keyframes */
-    @keyframes slideUp {{
-        from {{ opacity: 0; transform: translateY(20px); }}
-        to {{ opacity: 1; transform: translateY(0); }}
-    }}
+    /* Buttons & Utilities */
+    .stButton>button {
+        background: transparent;
+        border: none;
+        color: #666;
+        font-size: 12px;
+        transition: 0.3s;
+    }
+    .stButton>button:hover { color: #FFF; }
 
-    header, footer {{ visibility: hidden; }}
+    /* Hide redundant elements */
+    header, footer { visibility: hidden; }
+    [data-testid="stSidebar"] { display: none; }
     </style>
     """, unsafe_allow_html=True)
 
-# =============================================================================
-# 3. BACKEND & STATE MANAGEMENT
-# =============================================================================
-def initialize_state():
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-    if "api_key" not in st.session_state:
-        st.session_state.api_key = st.secrets.get("GROQ_API_KEY", "")
+# --- 3. CORE LOGIC ---
+api_key = st.secrets.get("GROQ_API_KEY", "YOUR_API_KEY")
+client = Groq(api_key=api_key)
 
-def get_image_base64(uploaded_file):
-    return base64.b64encode(uploaded_file.getvalue()).decode()
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# =============================================================================
-# 4. MAIN APPLICATION ARCHITECTURE
-# =============================================================================
-def main():
-    st.set_page_config(
-        page_title=NeuralEliteSystem.TITLE,
-        page_icon=NeuralEliteSystem.ICON,
-        layout="wide"
-    )
-    initialize_state()
-    inject_premium_ui()
+# --- 4. MAIN UI ---
+st.markdown('<div class="nav-bar">FLOW INTELLIGENCE</div>', unsafe_allow_html=True)
 
-    # --- Sidebar: Operational Control ---
-    with st.sidebar:
-        st.markdown("<div style='padding: 20px 0;'><span style='letter-spacing:3px; font-size:12px; color:#555;'>SYSTEM CONSOLE</span></div>", unsafe_allow_html=True)
+# Tampilan Selamat Datang (Hanya jika chat kosong)
+if not st.session_state.messages:
+    st.markdown('<div class="hero-text">Think in flow.<br>Speak in wisdom.</div>', unsafe_allow_html=True)
+
+# Chat History
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# --- 5. INTERACTION ---
+if prompt := st.chat_input("What is on your mind?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant"):
+        placeholder = st.empty()
+        full_res = ""
         
-        st.write("###")
-        st.caption("INTELLIGENCE ENGINE")
-        model_choice = st.selectbox(
-            "Engine",
-            ["llama-3.3-70b-versatile", "llama-3.2-11b-vision-preview"],
-            label_visibility="collapsed"
-        )
-
-        st.write("###")
-        st.caption("VISUAL DATA BUFFER")
-        img_file = st.file_uploader("Upload Assets", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-        
-        if img_file:
-            st.image(img_file, use_container_width=True)
-            st.success("Visual Data Locked.")
-
-        st.write("---")
-        if st.button("TERMINATE SESSION"):
-            st.session_state.messages = []
-            st.rerun()
-
-    # --- Main Screen: Neural Dashboard ---
-    st.markdown(f"""
-        <div class="premium-header">
-            <div class="logo-container">NEURAL ELITE</div>
-            <div style="font-size: 10px; color: #444; letter-spacing: 1px;">CHANNEL ID: 0xFF-ALPHAV4</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Render Chat History
-    for m in st.session_state.messages:
-        is_ai = m["role"] == "assistant"
-        style_class = "ai-response" if is_ai else "user-inquiry"
-        label = "Neural Response" if is_ai else "Strategic Inquiry"
-        
-        st.markdown(f"""
-            <div class="message-row">
-                <div class="message-card {style_class}">
-                    <div class="role-tag">{label}</div>
-                    <div style="font-weight: 300; line-height: 1.8; color: #D1D1D1;">
-                        {m["content"]}
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    # --- AI Logic & Execution ---
-    if prompt := st.chat_input("Enter command to Neural Elite..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        
-        with st.chat_message("assistant", avatar=None):
-            placeholder = st.empty()
-            full_content = ""
-            
-            client = Groq(api_key=st.session_state.api_key)
-            
-            # Logic: Automatic Switch for Vision
-            if img_file:
-                selected_model = "llama-3.2-11b-vision-preview"
-                messages = [{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{get_image_base64(img_file)}"}}
-                    ]
-                }]
-            else:
-                selected_model = model_choice
-                messages = [
-                    {"role": "system", "content": NeuralEliteSystem.SYSTEM_PROMPT},
+        try:
+            stream = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "You are Flow, a minimalist and highly intelligent AI. Your answers are deep, poetic yet practical, and very clean."},
                     *[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
-                ]
-
-            try:
-                # Streaming Response
-                response = client.chat.completions.create(
-                    model=selected_model,
-                    messages=messages,
-                    stream=True
-                )
-                
-                for chunk in response:
-                    content = chunk.choices[0].delta.content or ""
-                    full_content += content
-                    placeholder.markdown(f"""
-                        <div class="message-card ai-response" style="margin-top:0;">
-                            <div class="role-tag">Processing Data...</div>
-                            <div style="font-weight: 300; line-height: 1.8; color: #D1D1D1;">
-                                {full_content}▌
-                            </div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                
-                st.session_state.messages.append({"role": "assistant", "content": full_content})
-                st.rerun()
-            except Exception as e:
-                st.error(f"System Operational Error: {e}")
-
-if __name__ == "__main__":
-    main()
+                ],
+                stream=True
+            )
+            for chunk in stream:
+                content = chunk.choices[0].delta.content or ""
+                full_res += content
+                placeholder.markdown(full_res + " ")
+            
+            st.session_state.messages.append({"role": "assistant", "content": full_res})
+        except Exception as e:
+            st.error(f"Error: {e}")
