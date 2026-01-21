@@ -158,10 +158,48 @@ st.markdown("""
     </div>
     """, unsafe_allow_html=True)
 
-# Chat History Display
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# --- 5. MAIN INTERFACE (CHAT DISPLAY) ---
+st.markdown("""
+    <div class='main-header'>
+        <span class='badge'>System Active</span>
+        <h1 style='font-size: 42px; margin:0; font-family: "Space Grotesk";'>Intelligence <span style='font-weight:300; color:#D4AF37;'>Interface</span></h1>
+        <p style='color: #666; font-size: 14px;'>Professional Multi-Modal Processing Unit</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# Container khusus untuk chat agar lebih rapi
+chat_container = st.container()
+
+with chat_container:
+    for message in st.session_state.messages:
+        role_class = "user-style" if message["role"] == "user" else "assistant-style"
+        avatar = "👤" if message["role"] == "user" else "🤖"
+        bg_color = "rgba(255, 255, 255, 0.05)" if message["role"] == "user" else "rgba(212, 175, 55, 0.03)"
+        border_color = "rgba(255, 255, 255, 0.1)" if message["role"] == "user" else "rgba(212, 175, 55, 0.2)"
+        
+        st.markdown(f"""
+            <div style="
+                background: {bg_color};
+                border: 1px solid {border_color};
+                padding: 20px;
+                border-radius: 15px;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: flex-start;
+                gap: 15px;
+                backdrop-filter: blur(10px);
+            ">
+                <div style="font-size: 24px;">{avatar}</div>
+                <div style="flex: 1;">
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 5px;">
+                        {message["role"]}
+                    </div>
+                    <div style="color: #F8F9FA; line-height: 1.6; font-weight: 300;">
+                        {message["content"]}
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
 # --- 6. AI LOGIC ---
 if prompt := st.chat_input("Enter command or inquiry..."):
