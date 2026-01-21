@@ -3,147 +3,111 @@ from groq import Groq
 import time
 import io
 import zipfile
-import re
+import random
 
-# [1] ADVANCED PAGE CONFIGURATION
-st.set_page_config(
-    page_title="NEURAL FLOW | UNLIMITED ARCHITECT",
-    page_icon="⚡",
-    layout="wide"
-)
+# [1] CONFIG & STYLE
+st.set_page_config(page_title="NEURAL FLOW v3", page_icon="🚀", layout="wide")
 
-# [2] LUXURY DESIGN SYSTEM
-def apply_style():
+def apply_design():
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700&display=swap');
-    .stApp { background-color: #050505; color: #E0E0E0; font-family: 'Inter', sans-serif; }
+    .stApp { background-color: #050505; color: #E0E0E0; }
+    .status-box { border: 1px solid #4285F4; padding: 10px; border-radius: 10px; background: #111; }
     .gemini-gradient {
         background: linear-gradient(90deg, #4285F4, #9B72CB, #D4AF37);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-weight: 800; font-size: 2.8rem;
-    }
-    .stDownloadButton button {
-        background: linear-gradient(45deg, #1A73E8, #9B72CB) !important;
-        color: white !important; border-radius: 12px !important;
-        border: none !important; font-weight: bold !important;
-        transition: 0.3s; width: 100%;
+        font-weight: 800; font-size: 2.5rem;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# [3] MULTI-FILE ZIP GENERATOR
-def create_zip_from_code(full_text):
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "x", zipfile.ZIP_DEFLATED) as vk:
-        # Mencari pola penamaan file otomatis: # filename: example.py
-        file_blocks = re.findall(r"(?://|#)\s*filename:\s*([\w\.]+)\n```(?:\w+)?\n(.*?)\n```", full_text, re.DOTALL)
-        if file_blocks:
-            for name, content in file_blocks:
-                vk.writestr(name, content.strip())
-        else:
-            vk.writestr("full_project_code.txt", full_text)
-    return buf.getvalue()
-
-# [4] TRUE NO-LIMIT ENGINE (RECURSIVE & PROTECTED)
-def generate_unlimited_code(prompt, model):
-    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-    full_response = ""
-    placeholder = st.empty()
+# [2] ENGINE ROTASI API KEY
+def get_ai_response(messages, model):
+    """Fungsi yang otomatis mencoba API Key lain jika satu key limit"""
+    # Ambil daftar key dari secrets
+    keys = st.secrets["GROQ_KEYS"]
+    random.shuffle(keys) # Acak urutan agar beban merata
     
-    # Instruksi sistem yang sangat ketat untuk menghindari looping sampah
-    messages = [
-        {"role": "system", "content": "You are an Elite Developer. Provide full, production-ready code. Use '# filename: name.ext' before code blocks. If the code is long, DO NOT say 'To be continued' or 'Dan seterusnya'. Just stop, so I can ask you to continue. Be 100% efficient."},
-        {"role": "user", "content": prompt}
-    ]
-    
-    iteration = 0
-    # Mendukung hingga 20 iterasi (~60.000+ token)
-    while iteration < 20:
+    for key in keys:
         try:
-            # Jeda adaptif untuk mendinginkan API Groq
-            if iteration > 0:
-                time.sleep(6) # Cooldown wajib
-            
-            stream = client.chat.completions.create(
+            client = Groq(api_key=key)
+            completion = client.chat.completions.create(
                 model=model,
                 messages=messages,
-                stream=True,
-                max_tokens=3000 # Ukuran optimal untuk menghindari limit mendadak
+                temperature=0.3, # Lebih rendah agar kode lebih stabil
+                max_tokens=4000
             )
-            
-            chunk_text = ""
-            for chunk in stream:
-                content = chunk.choices[0].delta.content
-                if content:
-                    chunk_text += content
-                    full_response += content
-                    placeholder.markdown(full_response + " █")
-            
-            # Deteksi apakah semua blok kode sudah ditutup
-            if full_response.strip().endswith("```") and full_response.count("```") % 2 == 0:
-                break
-            
-            # Menambahkan konteks untuk kelanjutan
-            messages.append({"role": "assistant", "content": chunk_text})
-            messages.append({"role": "user", "content": "The code is cut off. CONTINUE immediately from the very last character. No introduction, just the remaining code."})
-            iteration += 1
-            
+            return completion.choices[0].message.content
         except Exception as e:
             if "rate_limit" in str(e).lower():
-                st.warning("⚠️ Memasuki fase pendinginan API (25 detik)...")
-                time.sleep(25)
-                continue
+                continue # Coba key berikutnya
             else:
-                st.error(f"Sistem Error: {e}")
-                break
-                
-    placeholder.markdown(full_response)
-    return full_response
+                st.error(f"Error: {e}")
+                return None
+    return "SEMUA API KEY LIMIT. Tunggu 1 menit."
 
-# [5] MAIN UI LOGIC
+# [3] LOGIKA PEMBUATAN MODULAR
 def main():
-    apply_style()
-    st.markdown("<h1 class='gemini-gradient'>Neural Architect Unlimited</h1>", unsafe_allow_html=True)
-    
-    if "history" not in st.session_state:
-        st.session_state.history = []
+    apply_design()
+    st.markdown("<h1 class='gemini-gradient'>Neural Architect Unlimited v3</h1>", unsafe_allow_html=True)
+    st.caption("Mode: Multi-Key Rotation & Modular Construction Active")
 
+    # Sidebar untuk kontrol
     with st.sidebar:
-        st.header("⚙️ Intelligent Controls")
-        model = st.selectbox("Model Core", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
-        st.divider()
-        st.write("🚀 **No-Limit Mode: Active**")
-        st.caption("AI akan menulis beribu baris dan menyambung otomatis sampai selesai.")
-        if st.button("Reset Memory"):
-            st.session_state.history = []
-            st.rerun()
+        st.header("Settings")
+        model = st.selectbox("Engine", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
+        st.info(f"Terdeteksi {len(st.secrets['GROQ_KEYS'])} API Keys aktif.")
 
-    # Render Chat History
-    for msg in st.session_state.history:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+    prompt = st.chat_input("Jelaskan proyek raksasa yang ingin Anda buat...")
 
-    # Chat Input
-    if p := st.chat_input("Deskripsikan tugas coding raksasa Anda..."):
-        st.session_state.history.append({"role": "user", "content": p})
-        with st.chat_message("user"):
-            st.markdown(p)
-
-        with st.chat_message("assistant"):
-            # Memanggil fungsi No-Limit
-            final_res = generate_unlimited_code(p, model)
-            st.session_state.history.append({"role": "assistant", "content": final_res})
+    if prompt:
+        # TAHAP 1: BLUEPRINTING (Si Arsitek)
+        with st.status("🏗️ Fase 1: Membuat Arsitektur Proyek..."):
+            blueprint_msg = [
+                {"role": "system", "content": "You are a Senior Architect. Breakdown the user's request into a MASSIVE project. List every single file needed. Output ONLY filenames separated by commas. No prose."},
+                {"role": "user", "content": f"Create a huge project for: {prompt}"}
+            ]
+            file_list_raw = get_ai_response(blueprint_msg, model)
+            if not file_list_raw: return
             
-            # Export Buttons
-            st.markdown("---")
-            zip_file = create_zip_from_code(final_res)
-            st.download_button(
-                label="📦 DOWNLOAD FULL PROJECT (.ZIP)",
-                data=zip_file,
-                file_name="architect_project_files.zip",
-                mime="application/zip"
-            )
+            filenames = [f.strip() for f in file_list_raw.split(",")]
+            st.write(f"Terencana: **{len(filenames)} file** akan dikerjakan.")
+
+        # TAHAP 2: CODING (Si Tukang)
+        all_project_files = {}
+        progress = st.progress(0)
+        
+        container = st.container()
+        for i, name in enumerate(filenames):
+            with container:
+                with st.status(f"⏳ Menulis File ({i+1}/{len(filenames)}): {name}..."):
+                    code_msg = [
+                        {"role": "system", "content": f"You are an Elite Coder. Project context: {prompt}. Write the complete code for the file '{name}'. Use best practices, high complexity, and full implementation."},
+                        {"role": "user", "content": f"Write the code for {name}"}
+                    ]
+                    file_code = get_ai_response(code_msg, model)
+                    all_project_files[name] = file_code
+                    
+                    # Update progress
+                    progress.progress((i + 1) / len(filenames))
+                    time.sleep(1) # Cooldown tipis
+
+        # TAHAP 3: PACKAGING (Finalisasi)
+        st.success(f"🔥 Selesai! Berhasil membangun {len(filenames)} file modul.")
+        
+        # Buat ZIP
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for n, c in all_project_files.items():
+                zip_file.writestr(n, c)
+
+        st.download_button(
+            label="📥 DOWNLOAD FULL PRODUCTION CODE (.ZIP)",
+            data=zip_buffer.getvalue(),
+            file_name="ultra_project_output.zip",
+            mime="application/zip",
+            use_container_width=True
+        )
 
 if __name__ == "__main__":
     main()
