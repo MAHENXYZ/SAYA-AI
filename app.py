@@ -969,4 +969,55 @@ def inject_identity_styles():
         }
         </style>
     """, unsafe_allow_html=True)
-    
+    # --- LANJUTAN KODE ANDA (TARUH DI PALING BAWAH) ---
+
+# [CORE-MAIN] ORCHESTRATION
+def main_production_entry():
+    # 1. Jalankan Injeksi Desain & HUD
+    apply_atmospheric_fx()
+    inject_global_typography()
+    inject_hud_styling()
+    inject_micro_animations()
+    inject_context_styles()
+    inject_audio_styles()
+    inject_data_science_styles()
+    inject_knowledge_fx()
+    inject_agent_styles()
+    inject_feedback_styles()
+    inject_identity_styles()
+    NeuralVoice.inject_tts_script()
+
+    # 2. Cek Akses Keamanan (Login)
+    if NeuralVault.check_access():
+        
+        # 3. Render Sidebar (Elemen Samping)
+        selected_model = IntelligenceHub.render_model_selector()
+        NeuralResearch.render_research_toggle()
+        SystemHealthMonitor.render_health_dashboard()
+        PromptLibrary.render_library_ui()
+        KnowledgeProcessor.render_uploader_ui()
+        IdentityManager.render_profile_settings()
+        NeuralMemory.render_memory_tools()
+        render_sync_status()
+        finalize_feedback_layer()
+        
+        # 4. Area Chat Utama
+        st.markdown(f'<div class="nav-brand">NEURAL INTERFACE</div>', unsafe_allow_html=True)
+        
+        # Render riwayat pesan dari memori
+        for i, msg in enumerate(st.session_state.memory):
+            render_message(msg["role"], msg["content"])
+            if msg["role"] == "assistant":
+                NeuralVoice.render_voice_controls(msg["content"], i)
+                NeuralVisualizer.detect_and_render_charts(msg["content"])
+                NeuralFeedback.render_feedback_ui(i)
+
+        # 5. Input User
+        if prompt := st.chat_input("Command the Intelligence..."):
+            # Tampilkan pesan user
+            st.session_state.memory.append({"role": "user", "content": prompt})
+            st.rerun()
+
+# Jalankan Aplikasi
+if __name__ == "__main__":
+    main_production_entry()
