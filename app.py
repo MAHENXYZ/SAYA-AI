@@ -3,10 +3,11 @@ from groq import Groq
 import time
 import io
 import zipfile
+import re
 import random
 
-# [1] TAMPILAN MEWAH
-st.set_page_config(page_title="NEURAL ARCHITECT UNLIMITED", page_icon="⚡", layout="wide")
+# [1] CONFIG & LUXURY STYLE
+st.set_page_config(page_title="NEURAL FLOW v3 | MULTI-FUNCTION", page_icon="⚡", layout="wide")
 
 st.markdown("""
 <style>
@@ -14,92 +15,98 @@ st.markdown("""
     .gemini-gradient {
         background: linear-gradient(90deg, #4285F4, #9B72CB, #D4AF37);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-weight: 800; font-size: 3rem;
+        font-weight: 800; font-size: 2.8rem;
+    }
+    .stDownloadButton button {
+        background: linear-gradient(45deg, #1A73E8, #9B72CB) !important;
+        color: white !important; border-radius: 12px !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# [2] ENGINE ROTASI API (Tanpa Batas)
-def call_ai_with_rotation(messages, model):
-    """Mencoba satu per satu API Key jika ada yang terkena limit"""
+# [2] MULTI-KEY ROTATION ENGINE
+def call_ai_rotated(messages, model, stream=False):
     keys = st.secrets["GROQ_KEYS"]
-    random.shuffle(keys) # Acak agar beban terbagi rata
-    
+    random.shuffle(keys)
     for key in keys:
         try:
             client = Groq(api_key=key)
-            completion = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=0.2, # Lebih rendah agar kode lebih akurat
-                max_tokens=4000
-            )
-            return completion.choices[0].message.content
+            return client.chat.completions.create(model=model, messages=messages, stream=stream, max_tokens=4000)
         except Exception as e:
-            # Jika limit, lanjut ke API Key berikutnya
-            if "rate_limit" in str(e).lower():
-                continue
-            else:
-                st.error(f"Error pada Key: {e}")
-                continue
+            if "rate_limit" in str(e).lower(): continue
+            st.error(f"Error: {e}")
     return None
 
-# [3] LOGIKA UTAMA
+# [3] MODULAR CODING LOGIC (Untuk Proyek Besar)
+def build_massive_project(prompt, model):
+    # Tahap Arsitek
+    with st.status("🏗️ Fase 1: Merancang Arsitektur Raksasa..."):
+        arch_msg = [{"role": "system", "content": "You are a Senior Architect. Breakdown this request into 30-50 filenames. Output ONLY filenames separated by commas."},
+                    {"role": "user", "content": prompt}]
+        res = call_ai_rotated(arch_msg, model)
+        if not res: return
+        filenames = [f.strip() for f in res.choices[0].message.content.split(",")]
+        st.write(f"Terencana: **{len(filenames)} file** akan dibuat.")
+
+    # Tahap Pembangunan
+    all_files = {}
+    progress = st.progress(0)
+    for i, name in enumerate(filenames):
+        with st.status(f"⚡ Menulis File ({i+1}/{len(filenames)}): {name}"):
+            code_msg = [{"role": "system", "content": f"Write FULL production code for {name}. Context: {prompt}. Just code, no talk."},
+                        {"role": "user", "content": f"Generate code for {name}"}]
+            code_res = call_ai_rotated(code_msg, model)
+            if code_res:
+                all_files[name] = code_res.choices[0].message.content
+                time.sleep(1) # Cooldown
+        progress.progress((i + 1) / len(filenames))
+    
+    return all_files
+
+# [4] MAIN UI
 def main():
-    st.markdown("<h1 class='gemini-gradient'>Neural Architect Unlimited</h1>", unsafe_allow_html=True)
-    st.write(f"🚀 **Sistem Siap:** Menggunakan {len(st.secrets['GROQ_KEYS'])} API Keys untuk rotasi.")
+    st.markdown("<h1 class='gemini-gradient'>Neural Flow Multi-AI</h1>", unsafe_allow_html=True)
+    
+    if "history" not in st.session_state: st.session_state.history = []
 
-    model = st.sidebar.selectbox("Pilih Model", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
-    prompt = st.chat_input("Apa proyek raksasa yang ingin Anda bangun hari ini?")
+    # Sidebar
+    with st.sidebar:
+        st.header("⚙️ Settings")
+        model = st.selectbox("Model Core", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
+        st.success(f"Aktif: {len(st.secrets['GROQ_KEYS'])} API Keys")
+        if st.button("Clear Chat"):
+            st.session_state.history = []
+            st.rerun()
 
-    if prompt:
-        # TAHAP 1: SI ARSITEK (Membuat Blueprint)
-        with st.status("🏗️ Fase 1: Merancang Struktur Folder & File..."):
-            arch_msg = [
-                {"role": "system", "content": "You are a Senior Software Architect. Breakdown the request into at least 30-50 separate files for a massive project. Output ONLY filenames separated by commas."},
-                {"role": "user", "content": prompt}
-            ]
-            file_list_raw = call_ai_with_rotation(arch_msg, model)
-            if not file_list_raw:
-                st.error("Gagal memulai. Semua API Key mungkin sedang sibuk.")
-                return
-            
-            filenames = [f.strip() for f in file_list_raw.split(",")]
-            st.success(f"Blueprint Selesai: {len(filenames)} file akan dibangun.")
+    # Chat Interface
+    for msg in st.session_state.history:
+        with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
-        # TAHAP 2: SI TUKANG (Membangun File satu per satu)
-        all_files = {}
-        prog_bar = st.progress(0)
-        
-        for idx, name in enumerate(filenames):
-            with st.status(f"⚡ Sedang mengerjakan ({idx+1}/{len(filenames)}): {name}"):
-                code_msg = [
-                    {"role": "system", "content": f"You are an Elite Developer. Context: {prompt}. Write the COMPLETE and DETAILED code for the file: {name}. No talking, just code."},
-                    {"role": "user", "content": f"Code for {name}"}
-                ]
-                code_result = call_ai_with_rotation(code_msg, model)
-                all_files[name] = code_result
-                
-                # Jeda kecil agar API tidak kaget
-                time.sleep(1.5)
-            
-            prog_bar.progress((idx + 1) / len(filenames))
+    if p := st.chat_input("Ketik 'Hai' untuk ngobrol atau jelaskan proyek coding Anda..."):
+        st.session_state.history.append({"role": "user", "content": p})
+        with st.chat_message("user"): st.markdown(p)
 
-        # TAHAP 3: PACKAGING (Selesai)
-        st.success("✅ Semua file berhasil dibuat tanpa henti!")
-        
-        zip_buf = io.BytesIO()
-        with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-            for n, c in all_files.items():
-                if c: zf.writestr(n, c)
+        with st.chat_message("assistant"):
+            # DETEKSI: Apakah ini perintah coding berat?
+            keywords = ["buat", "bikin", "proyek", "build", "code", "coding", "aplikasi"]
+            is_coding = any(x in p.lower() for x in keywords) or len(p.split()) > 15
 
-        st.download_button(
-            label="📦 DOWNLOAD FULL PROJECT (.ZIP)",
-            data=zip_buf.getvalue(),
-            file_name="architect_massive_project.zip",
-            mime="application/zip",
-            use_container_width=True
-        )
+            if is_coding:
+                project_data = build_massive_project(p, model)
+                if project_data:
+                    zip_buf = io.BytesIO()
+                    with zipfile.ZipFile(zip_buf, "w") as zf:
+                        for n, c in project_data.items(): zf.writestr(n, c)
+                    
+                    st.success("🔥 Proyek Raksasa Selesai!")
+                    st.download_button("📦 DOWNLOAD FULL PROJECT (.ZIP)", data=zip_buf.getvalue(), file_name="massive_project.zip", mime="application/zip")
+                    st.session_state.history.append({"role": "assistant", "content": f"Berhasil membangun proyek dengan {len(project_data)} file."})
+            else:
+                # Mode Chat Biasa
+                res = call_ai_rotated([{"role": "user", "content": p}], model)
+                ans = res.choices[0].message.content
+                st.markdown(ans)
+                st.session_state.history.append({"role": "assistant", "content": ans})
 
 if __name__ == "__main__":
     main()
