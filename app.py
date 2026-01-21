@@ -2080,6 +2080,10 @@ class CreativeStudio:
         
         if any(word in message_content.lower() for word in trigger_keywords):
             with st.chat_message("assistant", avatar="🎨"):
+                # Tambahkan ini di dalam loop pesan chat
+NeuralVoice.render_voice_controls(message['content'], i)
+CreativeStudio.render_creative_trigger(message['content'], i)
+NeuralVisualizer.detect_and_render_charts(message['content'])
                 st.caption("NEURAL RENDERING ENGINE")
                 img_url = CreativeStudio.generate_image(message_content)
                 
@@ -2244,3 +2248,83 @@ def apply_global_branding():
     # Namun karena kita menggunakan sistem modular, kita panggil di main_production_entry
     GlobalPresence.inject_seo_meta()
     run_pre_deployment_audit()
+    # =============================================================================
+# [CORE-62] NEURAL USER PROFILE ENGINE
+# =============================================================================
+class UserCommandCenter:
+    """Mengelola profil pengguna dan instruksi kustom yang persisten."""
+
+    @staticmethod
+    def render_profile_settings():
+        """Menampilkan panel konfigurasi profil di sidebar dengan gaya high-tech."""
+        st.sidebar.write("---")
+        with st.sidebar.expander("👤 USER COMMAND CENTER", expanded=False):
+            st.caption("COGNITIVE PREFERENCES")
+            
+            # Pengaturan tingkat kerincian (Verbosity)
+            verbosity = st.select_slider(
+                "Response Depth",
+                options=["Concise", "Balanced", "Deep Dive"],
+                value="Balanced"
+            )
+            
+            # Instruksi Kustom (Persis ChatGPT)
+            user_bio = st.text_area(
+                "User Context", 
+                placeholder="Contoh: Saya adalah CEO Start-up yang sibuk...",
+                help="Informasi ini membantu AI menyesuaikan jawaban dengan situasi Anda."
+            )
+            
+            # Toggle Mode 'Experimental'
+            st.toggle("Beta: Quantum Reasoning", value=True)
+            
+            # Simpan ke Session State
+            st.session_state.user_prefs = {
+                "verbosity": verbosity,
+                "bio": user_bio
+            }
+
+# =============================================================================
+# [CORE-63] PROMPT INJECTION LOGIC (PROFILE ADAPTATION)
+# =============================================================================
+def adapt_prompt_to_profile(base_prompt):
+    """Menyuntikkan preferensi pengguna ke dalam prompt utama secara otomatis."""
+    prefs = st.session_state.get("user_prefs", {})
+    bio = prefs.get("bio", "")
+    depth = prefs.get("verbosity", "Balanced")
+    
+    adaptation = f"\n\n[USER CONTEXT: {bio}]\n"
+    adaptation += f"[DESIRED DEPTH: {depth} - Adjust your response length accordingly.]"
+    
+    return base_prompt + adaptation
+
+# =============================================================================
+# [CORE-64] UI POLISH: THE "NEURAL" SCROLLBAR (CSS)
+# =============================================================================
+def inject_premium_scrollbar():
+    """Mengganti scrollbar standar browser dengan desain minimalis emas."""
+    st.markdown("""
+        <style>
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(197, 160, 89, 0.2);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-gold);
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+# =============================================================================
+# [CORE-65] FINAL INTEGRATION SYNC
+# =============================================================================
+def finalize_command_center():
+    """Inisialisasi semua fitur profil dan UI scrollbar."""
+    UserCommandCenter.render_profile_settings()
+    inject_premium_scrollbar()
