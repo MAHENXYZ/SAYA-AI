@@ -2,156 +2,152 @@ import streamlit as st
 from groq import Groq
 import time
 import io
+import zipfile
+import re
 
-# [1] INITIAL CONFIGURATION
+# [1] ADVANCED CONFIGURATION
 st.set_page_config(
-    page_title="NEURAL FLOW ARCHITECT PRO",
-    page_icon="💎",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="NEURAL FLOW | UNLIMITED ARCHITECT",
+    page_icon="⚡",
+    layout="wide"
 )
 
-# [2] PREMIUM STYLING (GEMINI DARK MODE)
-def apply_custom_style():
+# [2] LUXURY DESIGN SYSTEM
+def apply_style():
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&display=swap');
-    
-    .stApp {
-        background-color: #050505;
-        color: #E2E2E2;
-        font-family: 'Space Grotesk', sans-serif;
-    }
-    .gemini-text {
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700&display=swap');
+    .stApp { background-color: #050505; color: #E0E0E0; font-family: 'Inter', sans-serif; }
+    .gemini-gradient {
         background: linear-gradient(90deg, #4285F4, #9B72CB, #D4AF37);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 700;
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-weight: 800; font-size: 2.8rem;
     }
-    /* Style for Download Button */
+    /* Tombol Download Mewah */
     .stDownloadButton button {
-        width: 100%;
         background: linear-gradient(45deg, #1A73E8, #9B72CB) !important;
-        color: white !important;
-        border: none !important;
-        padding: 10px !important;
-        border-radius: 10px !important;
-        font-weight: bold !important;
+        color: white !important; border-radius: 12px !important;
+        border: none !important; font-weight: bold !important;
+        transition: 0.3s; width: 100%;
     }
+    .stDownloadButton button:hover { transform: scale(1.02); opacity: 0.9; }
     </style>
     """, unsafe_allow_html=True)
 
-# [3] CORE LOGIC: UNLIMITED CODE GENERATION
-def generate_unlimited_code(prompt, model_choice):
+# [3] MULTI-FILE ZIP ENGINE
+def create_zip_from_code(full_text):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "x", zipfile.ZIP_DEFLATED) as vk:
+        # Mencari pola # filename: namafile.py
+        file_blocks = re.findall(r"(?://|#)\s*filename:\s*([\w\.]+)\n```(?:\w+)?\n(.*?)\n```", full_text, re.DOTALL)
+        if file_blocks:
+            for name, content in file_blocks:
+                vk.writestr(name, content.strip())
+        else:
+            vk.writestr("generated_code.py", full_text)
+    return buf.getvalue()
+
+# [4] NO-LIMIT RECURSIVE ENGINE
+def generate_no_limit_code(prompt, model):
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
     full_response = ""
     placeholder = st.empty()
     
-    # Pesan awal sistem
+    # System Prompt untuk memastikan AI tidak berhenti di tengah jalan
     messages = [
-        {"role": "system", "content": "You are a Senior Software Architect. Provide massive, detailed, and complete code implementations. If the code is long, do not stop until it is finished. I will handle the continuation logic."},
+        {"role": "system", "content": "You are an Elite Developer. Provide full, extremely detailed code. Use '# filename: name.ext' for each file. If the code is long, do not summarize. I will ask you to continue until 100% finished."},
         {"role": "user", "content": prompt}
     ]
     
     iteration = 0
-    max_iterations = 15 # Mendukung hingga ~30.000+ token
-    
-    while iteration < max_iterations:
+    max_iteration = 25 # Kapasitas hingga ~80.000 token
+
+    while iteration < max_iteration:
         try:
-            # Jeda antar request untuk menghindari RateLimitError
+            # Jeda adaptif untuk menghindari groq.RateLimitError
+            wait_time = 5 if iteration < 5 else 10
             if iteration > 0:
-                time.sleep(4) 
-                
-            completion = client.chat.completions.create(
-                model=model_choice,
+                with st.spinner(f"Menyambung kode (Bagian {iteration+1})..."):
+                    time.sleep(wait_time)
+            
+            stream = client.chat.completions.create(
+                model=model,
                 messages=messages,
                 stream=True,
-                max_tokens=3000 # Ukuran aman per chunk
+                max_tokens=3500 # Ukuran aman per hit
             )
             
-            partial_text = ""
-            for chunk in completion:
+            chunk_text = ""
+            for chunk in stream:
                 content = chunk.choices[0].delta.content
                 if content:
-                    partial_text += content
+                    chunk_text += content
                     full_response += content
                     placeholder.markdown(full_response + " █")
             
-            # Deteksi apakah blok kode (```) sudah ditutup
-            # Kami menghitung jumlah kemunculan ``` untuk memastikan genap (terbuka & tertutup)
-            if full_response.count("```") % 2 == 0 and iteration > 0:
+            # Cek apakah blok kode terakhir sudah ditutup (```)
+            # Jika sudah ditutup dan tidak ada blok baru yang dibuka, berarti selesai
+            if full_response.strip().endswith("```") and full_response.count("```") % 2 == 0:
                 break
             
-            # Jika masih terbuka, minta AI lanjut
-            messages.append({"role": "assistant", "content": partial_text})
-            messages.append({"role": "user", "content": "The code is still incomplete. Continue strictly from the last character. No introduction, just code."})
+            # Update memori untuk request "Continue"
+            messages.append({"role": "assistant", "content": chunk_text})
+            messages.append({"role": "user", "content": "CONTINUE. Don't repeat, just continue the code exactly from where it cut off."})
             iteration += 1
             
         except Exception as e:
             if "rate_limit" in str(e).lower():
-                st.warning("⚠️ Rate Limit Detected. Re-calibrating in 10s...")
-                time.sleep(10)
+                st.warning("Rate limit terdeteksi. Sistem beristirahat 20 detik...")
+                time.sleep(20)
                 continue
             else:
-                st.error(f"Neural Bridge Error: {e}")
+                st.error(f"Error: {e}")
                 break
                 
     placeholder.markdown(full_response)
     return full_response
 
-# [4] MAIN INTERFACE
+# [5] MAIN INTERFACE
 def main():
-    apply_custom_style()
+    apply_style()
+    st.markdown("<h1 class='gemini-gradient'>Neural Architect Unlimited</h1>", unsafe_allow_html=True)
     
-    # Sidebar
+    if "history" not in st.session_state:
+        st.session_state.history = []
+
     with st.sidebar:
-        st.markdown("<h1 class='gemini-text'>NEURAL FLOW</h1>", unsafe_allow_html=True)
-        st.caption("v2.5.0 Professional Edition")
-        st.divider()
-        
-        model = st.selectbox("Intelligence Core", [
-            "llama-3.3-70b-versatile", 
-            "mixtral-8x7b-32768"
-        ])
-        
-        st.success("✅ Unlimited Code Mode: Active")
-        st.info("Sistem akan otomatis melakukan 'Self-Correction' jika API memutus koneksi di tengah jalan.")
-        
-        if st.button("Clear System Memory"):
-            st.session_state.chat_history = []
+        st.header("⚙️ Core Settings")
+        model = st.selectbox("Model", ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"])
+        st.markdown("---")
+        st.write("🚀 **Mode No-Limit Aktif**")
+        st.caption("AI akan otomatis melakukan iterasi hingga kode selesai 100%.")
+        if st.button("Reset Session"):
+            st.session_state.history = []
             st.rerun()
 
-    # Chat History Setup
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
+    # Chat Display
+    for msg in st.session_state.history:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
-    # Welcome Message
-    st.markdown("<h2 class='gemini-text'>What are we building today?</h2>", unsafe_allow_html=True)
-
-    # Display History
-    for chat in st.session_state.chat_history:
-        with st.chat_message(chat["role"]):
-            st.markdown(chat["content"])
-
-    # User Input
-    if user_input := st.chat_input("Deskripsikan project besar Anda di sini..."):
-        st.session_state.chat_history.append({"role": "user", "content": user_input})
+    # Chat Input
+    if p := st.chat_input("Deskripsikan sistem/aplikasi besar yang ingin Anda bangun..."):
+        st.session_state.history.append({"role": "user", "content": p})
         with st.chat_message("user"):
-            st.markdown(user_input)
+            st.markdown(p)
 
         with st.chat_message("assistant"):
-            final_code = generate_unlimited_code(user_input, model)
-            st.session_state.chat_history.append({"role": "assistant", "content": final_code})
+            final_code = generate_no_limit_code(p, model)
+            st.session_state.history.append({"role": "assistant", "content": final_code})
             
-            # FEATURE: AUTO-DOWNLOAD BUTTON
-            st.divider()
-            st.subheader("📦 Export Result")
-            file_name = "generated_code_pro.py" # Bisa diubah manual
+            # Export Section
+            st.markdown("---")
+            zip_file = create_zip_from_code(final_code)
             st.download_button(
-                label="Download Full Code (.py)",
-                data=final_code,
-                file_name=file_name,
-                mime="text/plain"
+                label="📦 DOWNLOAD FULL PROJECT (.ZIP)",
+                data=zip_file,
+                file_name="architect_project.zip",
+                mime="application/zip"
             )
 
 if __name__ == "__main__":
